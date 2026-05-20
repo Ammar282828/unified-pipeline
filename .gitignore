@@ -1,0 +1,15 @@
+# Environment
+.env
+
+# Dependencies
+node_modules/
+
+# Backup files
+*.bak
+*.bak2
+
+# OS
+.DS_Store
+
+# Claude
+.claude/

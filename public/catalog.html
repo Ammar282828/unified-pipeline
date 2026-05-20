@@ -1,0 +1,3710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/png" href="/assets/favicon.png" />
+  <title>Shot Pipeline</title>
+  <style>
+    /* House of Mina brand fonts — Newsreader (serif headings) + Red Hat Text (sans body) */
+    @import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,200;0,400;0,600;0,700;1,200;1,400&family=Red+Hat+Text:wght@300;400;500;600;700&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #FFFFFF;
+      --surface:   #FFFFFF;
+      --surface2:  #F7F5F3;
+      --border:    #E6E6E6;
+      --border2:   #D6D3D1;
+      --accent:    #3A0000;
+      --accent-l:  #5C1A1A;
+      --accent-bg: #F5EDED;
+      --accent-bg2:#FAF5F5;
+      --text:      #000000;
+      --text2:     #3A3A3A;
+      --muted:     #78716C;
+      --muted2:    #A8A29E;
+      --success:   #006400;
+      --success-bg:#F0FDF4;
+      --danger:    #8B0000;
+      --danger-bg: #FEF2F2;
+      --gold:      #3A0000;
+      --gold-light:#5C1A1A;
+      --radius:    12px;
+      --radius-sm: 8px;
+      --shadow:    0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 6px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.04);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Red Hat Text', -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px 100px;
+    }
+
+    /* ── Header ── */
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .brand-logo {
+      height: 28px;
+      width: auto;
+    }
+    .brand-select {
+      font-family: 'Red Hat Text', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      color: var(--text);
+      background: var(--bg);
+      border: 1px solid var(--border, #d6d3ce);
+      border-radius: 999px;
+      padding: 5px 14px 5px 12px;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .brand-select:hover, .brand-select:focus { border-color: var(--gold, #b08a3e); }
+    header h1 {
+      font-family: 'Newsreader', Georgia, serif;
+      font-size: 1.7rem;
+      font-weight: 400;
+      font-style: italic;
+      letter-spacing: -0.3px;
+      line-height: 1.3;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    header p {
+      color: var(--muted);
+      font-size: 0.88rem;
+      font-weight: 400;
+    }
+
+    /* ── Main container ── */
+    .container {
+      width: 100%;
+      max-width: 720px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    /* ── Card sections ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 24px;
+      position: relative;
+    }
+    .card:first-child { border-radius: var(--radius) var(--radius) 0 0; }
+    .card:last-child { border-radius: 0 0 var(--radius) var(--radius); }
+    .card + .card { border-top: none; }
+
+    .card-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+
+    /* ── Mode tabs (Single / Batch) ── */
+    .mode-tabs {
+      display: flex;
+      gap: 2px;
+      background: var(--surface2);
+      border-radius: var(--radius);
+      padding: 3px;
+      margin-bottom: 20px;
+      border: 1px solid var(--border);
+    }
+    .mode-tab {
+      flex: 1;
+      padding: 9px 14px;
+      border-radius: 9px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+    .mode-tab.active {
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: var(--shadow);
+    }
+    .mode-panel { display: none; }
+    .mode-panel.active { display: block; }
+
+    /* ── Drop zone ── */
+    .drop-zone {
+      width: 100%;
+      border: 2px dashed var(--border2);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 40px 24px;
+      position: relative;
+      background: var(--surface2);
+    }
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: var(--gold);
+      background: var(--accent-bg2);
+    }
+    .drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .drop-zone h3 { font-size: 0.9rem; font-weight: 600; color: var(--text); }
+    .drop-zone p { font-size: 0.8rem; color: var(--muted); }
+    .drop-hint {
+      margin-top: 6px;
+      font-size: 0.72rem;
+      color: var(--muted2);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 3px 12px;
+    }
+
+    /* ── Image previews ── */
+    #previews { width: 100%; display: none; flex-direction: column; gap: 10px; }
+    #previews.visible { display: flex; }
+    .previews-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .previews-header span { font-size: 0.8rem; color: var(--muted); font-weight: 500; }
+    .previews-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+      gap: 8px;
+    }
+    .preview-card {
+      position: relative;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      aspect-ratio: 1/1;
+    }
+    .preview-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .preview-card .remove-btn {
+      position: absolute;
+      top: 4px; right: 4px;
+      width: 20px; height: 20px;
+      background: rgba(0,0,0,0.6);
+      border: none;
+      border-radius: 50%;
+      color: #fff;
+      font-size: 0.65rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
+    }
+    .preview-card .remove-btn:hover { background: var(--danger); }
+    .add-more-card {
+      border-radius: 8px;
+      border: 2px dashed var(--border2);
+      background: var(--surface2);
+      aspect-ratio: 1/1;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 2px;
+      cursor: pointer;
+      position: relative;
+      transition: border-color 0.15s;
+    }
+    .add-more-card:hover { border-color: var(--gold); }
+    .add-more-card input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .add-more-card span { font-size: 1.2rem; color: var(--muted); }
+    .add-more-card p { font-size: 0.65rem; color: var(--muted2); }
+
+    /* ── Shot selector ── */
+    .shot-category {
+      margin-bottom: 20px;
+    }
+    .shot-category:last-child { margin-bottom: 0; }
+    .shot-category-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .shot-category-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text2);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .shot-category-title .cat-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .cat-ecommerce .cat-dot { background: #3A0000; }
+    .cat-model .cat-dot { background: #8B4513; }
+    .cat-marble .cat-dot { background: #78716C; }
+
+    .select-all-btn {
+      font-size: 0.7rem;
+      color: var(--muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 500;
+      padding: 2px 6px;
+      border-radius: 4px;
+      transition: color 0.15s, background 0.15s;
+    }
+    .select-all-btn:hover { color: var(--text); background: var(--surface2); }
+
+    .shot-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 8px;
+    }
+
+    .shot-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      border: 1.5px solid var(--border);
+      background: var(--surface);
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .shot-option:hover { border-color: var(--border2); background: var(--surface2); }
+    .shot-option.checked { border-color: var(--gold); background: var(--accent-bg2); }
+
+    .shot-checkbox {
+      width: 18px; height: 18px;
+      border-radius: 4px;
+      border: 2px solid var(--border2);
+      flex-shrink: 0;
+      margin-top: 1px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      background: var(--surface);
+    }
+    .shot-option.checked .shot-checkbox {
+      background: var(--gold);
+      border-color: var(--gold);
+    }
+    .shot-checkbox svg {
+      width: 12px; height: 12px;
+      stroke: #fff;
+      stroke-width: 2.5;
+      fill: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .shot-option.checked .shot-checkbox svg { opacity: 1; }
+
+    .shot-info { flex: 1; min-width: 0; }
+    .shot-name { font-size: 0.82rem; font-weight: 600; color: var(--text); line-height: 1.3; }
+    .shot-desc { font-size: 0.72rem; color: var(--muted); line-height: 1.4; margin-top: 2px; }
+
+    /* ── Custom instruction ── */
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .field-input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-size: 0.85rem;
+      outline: none;
+      transition: border-color 0.2s;
+      font-family: inherit;
+    }
+    .field-input::placeholder { color: var(--muted2); }
+    .field-input:focus { border-color: var(--gold); }
+
+    /* ── URL Scrape ── */
+    .url-scrape-row { margin-top: 12px; }
+    .url-scrape-divider {
+      text-align: center; position: relative; margin: 8px 0 12px;
+    }
+    .url-scrape-divider::before {
+      content: ''; position: absolute; left: 0; right: 0; top: 50%;
+      border-top: 1px solid var(--border);
+    }
+    .url-scrape-divider span {
+      position: relative; background: var(--surface); padding: 0 12px;
+      font-size: 0.78rem; color: var(--muted2); font-weight: 500;
+    }
+    .url-scrape-input-row { display: flex; gap: 8px; }
+    .url-scrape-input-row .field-input { flex: 1; font-size: 0.82rem; }
+    .btn-scrape {
+      padding: 8px 16px; font-size: 0.82rem; font-weight: 600;
+      border-radius: var(--radius-sm); border: 1px solid var(--gold);
+      background: var(--accent-bg); color: var(--gold); cursor: pointer;
+      font-family: inherit; white-space: nowrap; transition: all 0.2s;
+    }
+    .btn-scrape:hover { background: var(--gold); color: #fff; }
+    .btn-scrape:disabled { opacity: 0.5; cursor: wait; }
+    .url-scrape-status {
+      font-size: 0.78rem; color: var(--muted); margin-top: 6px;
+      min-height: 1.2em;
+    }
+    .url-scrape-status.err { color: var(--danger); }
+    .url-scrape-status.ok { color: var(--success); }
+
+    /* ── Buttons ── */
+    .btn-generate {
+      width: 100%;
+      padding: 14px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      border-radius: var(--radius);
+      border: none;
+      background: #3A0000;
+      color: #fff;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      font-family: inherit;
+      box-shadow: 0 2px 8px rgba(58,0,0,0.2);
+    }
+    .btn-generate:not(:disabled):hover { opacity: 0.88; }
+    .btn-generate:disabled { background: #C4A8A8; cursor: not-allowed; box-shadow: none; }
+    .btn-generate.loading { background: #5C1A1A; cursor: wait; }
+
+    .shot-count-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--gold);
+      background: var(--accent-bg);
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 8px;
+    }
+
+    /* ── Progress ── */
+    #progress { width: 100%; display: none; }
+    #progress.visible { display: block; }
+    .progress-inner {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2.5px solid var(--border);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .progress-text { font-size: 0.85rem; color: var(--muted); }
+    .progress-text strong { color: var(--text); font-weight: 600; }
+    .progress-steps { margin-left: auto; display: flex; gap: 5px; }
+    .step-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--border);
+      transition: background 0.3s;
+    }
+    .step-dot.active { background: var(--gold); animation: pulse 1s ease-in-out infinite; }
+    .step-dot.done   { background: var(--success); animation: none; }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+
+    /* ── Results ── */
+    #results { width: 100%; display: none; flex-direction: column; gap: 16px; }
+    #results.visible { display: flex; }
+
+    .results-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .results-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+    }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    @media (max-width: 540px) {
+      .results-grid { grid-template-columns: 1fr; }
+    }
+
+    .result-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: border-color 0.2s;
+      box-shadow: var(--shadow);
+    }
+    .result-card:hover { border-color: var(--border2); }
+    .result-card-label {
+      padding: 8px 12px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .label-ecommerce { color: #3A0000; background: #FAF5F5; }
+    .label-model { color: #8B4513; background: #FBF7F4; }
+    .label-marble { color: #78716C; background: #F7F5F3; }
+
+    .result-card img {
+      width: 100%;
+      aspect-ratio: 1/1;
+      display: block;
+      object-fit: cover;
+    }
+    .result-card-actions {
+      padding: 8px 10px;
+      display: flex;
+      gap: 6px;
+    }
+    .btn-dl {
+      flex: 1;
+      padding: 8px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: var(--surface2);
+      color: var(--text2);
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      font-family: inherit;
+    }
+    .btn-dl:hover { background: var(--border); }
+    .btn-retry {
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: var(--accent-bg);
+      color: var(--accent);
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+    .btn-retry:hover { background: var(--accent-bg2); }
+    .btn-retry:disabled { opacity: 0.4; cursor: wait; }
+
+    .btn-download-all {
+      padding: 10px 18px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--success-bg);
+      color: var(--success);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      font-family: inherit;
+    }
+    .btn-download-all:hover { background: #dcfce7; }
+
+    /* ── Error ── */
+    #error-box {
+      width: 100%;
+      display: none;
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      background: var(--danger-bg);
+      border: 1px solid #fecaca;
+      color: var(--danger);
+      font-size: 0.82rem;
+    }
+    #error-box.visible { display: block; }
+
+    /* ── Clear button ── */
+    .clear-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 0.72rem;
+      cursor: pointer;
+      font-family: inherit;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .clear-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+    /* ── Batch section ── */
+    .batch-info {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+    .batch-info code { color: var(--gold); background: var(--accent-bg); padding: 1px 5px; border-radius: 4px; font-size: 0.75rem; }
+
+    .folder-row { display: flex; gap: 8px; width: 100%; }
+    .folder-row .field-input { flex: 1; font-family: 'Courier New', monospace; font-size: 0.82rem; }
+    .btn-browse {
+      padding: 0 16px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+      font-size: 0.78rem;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-family: inherit;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+    .btn-browse:hover { background: var(--border); }
+    .btn-browse:disabled { opacity: 0.5; cursor: wait; }
+
+    /* Lock state on batch result cards */
+    .result-card.locked { outline: 2px solid var(--gold); outline-offset: -2px; }
+    .btn-lock { min-width: 80px; }
+
+    /* Prompt inspector modal */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+      display: none; align-items: center; justify-content: center; z-index: 1000;
+      padding: 20px;
+    }
+    .modal-overlay.visible { display: flex; }
+    .modal-box {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      box-shadow: var(--shadow-md); padding: 20px 24px;
+      max-width: 720px; width: 100%; max-height: 85vh;
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    .modal-header {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    }
+    .modal-title { font-size: 0.9rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; }
+    .modal-close {
+      border: none; background: transparent; font-size: 1.3rem; cursor: pointer; color: var(--muted);
+      line-height: 1; padding: 4px 8px;
+    }
+    .modal-close:hover { color: var(--text); }
+    .modal-body {
+      white-space: pre-wrap;
+      font-family: 'Courier New', monospace; font-size: 0.8rem;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 12px 14px;
+      overflow: auto; flex: 1; color: var(--text2); line-height: 1.5;
+    }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+    /* Recent folders dropdown */
+    .recent-folders {
+      position: relative; display: inline-block;
+    }
+    .recent-folders-menu {
+      position: absolute; right: 0; top: calc(100% + 4px);
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); box-shadow: var(--shadow-md);
+      min-width: 260px; max-width: 480px; z-index: 20;
+      display: none; flex-direction: column; overflow: hidden;
+    }
+    .recent-folders-menu.visible { display: flex; }
+    .recent-folders-menu button {
+      border: none; background: transparent; text-align: left;
+      padding: 8px 12px; font-size: 0.78rem; cursor: pointer;
+      font-family: 'Courier New', monospace; color: var(--text2);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      border-bottom: 1px solid var(--border);
+    }
+    .recent-folders-menu button:hover { background: var(--surface2); color: var(--text); }
+    .recent-folders-menu button:last-child { border-bottom: none; }
+    .recent-folders-menu .recent-empty { padding: 10px 12px; color: var(--muted); font-size: 0.75rem; }
+
+    /* Folder-scan pre-run list */
+    .scan-list { display: flex; flex-direction: column; gap: 4px; max-height: 55vh; overflow-y: auto; }
+    .scan-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 10px; border: 1px solid var(--border);
+      border-radius: var(--radius-sm); background: var(--surface);
+      cursor: pointer; user-select: none;
+      transition: background 0.12s ease;
+    }
+    .scan-item:hover { background: var(--surface2); }
+    .scan-item input[type="checkbox"] { accent-color: var(--accent); cursor: pointer; }
+    .scan-item-name { flex: 1; font-size: 0.85rem; color: var(--text); font-weight: 500; }
+    .scan-item-count { font-size: 0.72rem; color: var(--muted); }
+    .scan-item.disabled .scan-item-name,
+    .scan-item.disabled .scan-item-count { opacity: 0.45; text-decoration: line-through; }
+    .scan-empty { color: var(--muted); font-size: 0.85rem; padding: 16px; text-align: center; }
+
+    /* Mid-run skip button + skipped state */
+    .btn-skip-product { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+    .btn-skip-product:hover:not(:disabled) { border-color: #B86060; color: #B86060; }
+    .batch-product-section.skipped { opacity: 0.5; }
+    .batch-product-section.skipped .batch-angle-pending,
+    .batch-product-section.skipped .result-card { filter: grayscale(0.4); }
+    .batch-product-section.skipped .mini-spinner { display: none; }
+
+    #batch-log { width: 100%; display: none; flex-direction: column; gap: 8px; margin-top: 16px; }
+    #batch-log.visible { display: flex; }
+    #batch-status {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      background: var(--accent-bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-size: 0.82rem;
+    }
+    #batch-status.visible { display: flex; }
+    .status-spinner {
+      width: 13px; height: 13px;
+      border: 2px solid var(--border);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+    .status-product { font-weight: 600; color: var(--text); }
+    .status-arrow { color: var(--muted2); }
+    .status-shot { color: var(--muted); }
+    .status-count { margin-left: auto; font-size: 0.75rem; color: var(--muted2); font-variant-numeric: tabular-nums; }
+    .log-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      max-height: 200px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+    }
+    .log-line { font-size: 0.78rem; line-height: 1.8; color: var(--muted2); }
+    .log-line.ok    { color: var(--success); }
+    .log-line.err   { color: var(--danger); }
+    .log-line.info  { color: var(--text); }
+    .log-line.title { color: var(--gold); font-weight: 700; margin-top: 4px; }
+
+    #batch-results { width: 100%; display: none; flex-direction: column; gap: 24px; margin-top: 16px; }
+    #batch-results.visible { display: flex; }
+    .batch-product-section { display: flex; flex-direction: column; gap: 8px; }
+    .batch-product-title {
+      font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--gold);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .batch-product-title::after { content: ''; flex: 1; height: 1px; background: var(--border); order: 1; }
+    .batch-product-title .btn-retry-product { order: 2; margin-left: 4px; padding: 4px 10px; font-size: 0.65rem; letter-spacing: 0.08em; }
+    .batch-angles-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      align-items: stretch;        /* all cards in a row share the tallest card's height */
+      grid-auto-rows: 1fr;         /* all rows share height so pending matches rendered */
+    }
+    @media (max-width: 540px) { .batch-angles-grid { grid-template-columns: 1fr; } }
+
+    /* Placeholder matches full result-card height (square image + label + actions) */
+    .batch-angle-pending {
+      position: relative;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+      background: var(--surface2);
+      border: 1.5px dashed var(--border2);
+      border-radius: var(--radius);
+      color: var(--muted2);
+      font-size: 0.75rem;
+      min-height: calc(100% );      /* stretched by grid row */
+    }
+    /* Spacer gives placeholder a minimum silhouette equal to image 1:1 + ~70px chrome */
+    .batch-angle-pending::before {
+      content: '';
+      display: block;
+      width: 100%;
+      padding-top: calc(100% + 70px);
+      visibility: hidden;
+      pointer-events: none;
+    }
+    .batch-angle-pending > * { position: absolute; }
+    .batch-angle-pending > .mini-spinner {
+      top: calc(50% - 14px); left: 50%; transform: translate(-50%, -50%);
+    }
+    .batch-angle-pending > span {
+      top: calc(50% + 12px); left: 50%; transform: translateX(-50%);
+      white-space: nowrap;
+    }
+    .batch-angle-pending .mini-spinner {
+      width: 14px; height: 14px;
+      border: 2px solid var(--border);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    .batch-angle-pending.queued .mini-spinner { visibility: hidden; }
+
+    .btn-cancel-batch {
+      width: 100%;
+      padding: 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border-radius: var(--radius);
+      border: 1px solid #fecaca;
+      background: var(--danger-bg);
+      color: var(--danger);
+      cursor: pointer;
+      transition: background 0.15s;
+      font-family: inherit;
+      display: none;
+      margin-top: 8px;
+    }
+    .btn-cancel-batch:hover { background: #fee2e2; }
+    .btn-cancel-batch.visible { display: block; }
+
+    .btn-resume-batch {
+      width: 100%;
+      padding: 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border-radius: var(--radius);
+      border: 1px solid #bbf7d0;
+      background: #f0fdf4;
+      color: #166534;
+      cursor: pointer;
+      transition: background 0.15s;
+      font-family: inherit;
+      display: none;
+      margin-top: 8px;
+    }
+    .btn-resume-batch:hover { background: #dcfce7; }
+    .btn-resume-batch.visible { display: block; }
+
+    /* ── Quick presets ── */
+    .presets-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .preset-btn {
+      padding: 6px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text2);
+      font-size: 0.75rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+    .preset-btn:hover { border-color: var(--gold); color: var(--gold); }
+    .preset-btn.active { border-color: var(--gold); background: var(--accent-bg); color: var(--accent); }
+
+    /* ── Provider selector ── */
+    .provider-group {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .provider-btn {
+      flex: 1;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      border: 1.5px solid var(--border);
+      background: var(--surface);
+      color: var(--muted);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: inherit;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .provider-btn .provider-sub {
+      font-size: 0.65rem;
+      font-weight: 400;
+      opacity: 0.7;
+    }
+    .provider-btn:hover { border-color: var(--border2); color: var(--text2); }
+    .provider-btn.active { border-color: var(--gold); background: var(--accent-bg); color: var(--accent); }
+    .provider-btn.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+    .provider-note {
+      font-size: 0.7rem;
+      color: var(--muted2);
+      margin-top: -8px;
+      margin-bottom: 12px;
+    }
+
+    /* ── Cost tracker bar ── */
+    .cost-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #1a1a1a;
+      color: #fff;
+      font-family: 'Red Hat Text', sans-serif;
+      font-size: 0.75rem;
+      z-index: 1000;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      height: 38px;
+      gap: 0;
+    }
+    .cost-bar-section {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 14px;
+      height: 100%;
+      border-right: 1px solid rgba(255,255,255,0.08);
+    }
+    .cost-bar-section:last-child { border-right: none; }
+    .cost-bar-section.total {
+      padding-left: 0;
+    }
+    .cost-label {
+      color: rgba(255,255,255,0.45);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .cost-value {
+      font-weight: 700;
+      font-size: 0.8rem;
+      font-variant-numeric: tabular-nums;
+    }
+    .cost-value.total-cost {
+      color: #f0c040;
+      font-size: 0.9rem;
+    }
+    .cost-images {
+      color: rgba(255,255,255,0.55);
+      font-size: 0.65rem;
+    }
+    .cost-provider-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .cost-provider-dot.gemini { background: #4285f4; }
+    .cost-provider-dot.openai { background: #10a37f; }
+    .cost-provider-dot.nanobana2 { background: #f4b400; }
+    .cost-bar-reset {
+      margin-left: auto;
+      background: none;
+      border: 1px solid rgba(255,255,255,0.15);
+      color: rgba(255,255,255,0.5);
+      font-size: 0.6rem;
+      padding: 3px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: inherit;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: all 0.15s;
+    }
+    .cost-bar-reset:hover {
+      border-color: rgba(255,255,255,0.35);
+      color: rgba(255,255,255,0.8);
+    }
+
+    /* ── Image selection ── */
+    .result-card.selectable { cursor: pointer; position: relative; }
+    .result-card.selectable.selected { border-color: var(--gold); box-shadow: 0 0 0 2px var(--accent-bg); }
+    .select-check {
+      position: absolute;
+      top: 36px; right: 8px;
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.85);
+      border: 2px solid var(--border2);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 5;
+      transition: all 0.15s;
+      pointer-events: none;
+    }
+    .result-card.selected .select-check {
+      background: var(--gold);
+      border-color: var(--gold);
+    }
+    .select-check svg {
+      width: 14px; height: 14px;
+      stroke: #fff;
+      stroke-width: 2.5;
+      fill: none;
+      opacity: 0;
+    }
+    .result-card.selected .select-check svg { opacity: 1; }
+
+    /* ── Selection toolbar ── */
+    .selection-toolbar {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: var(--accent-bg);
+      border: 1px solid var(--gold);
+      border-radius: var(--radius);
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .selection-toolbar.visible { display: flex; }
+    .selection-toolbar .sel-count {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--accent);
+      margin-right: auto;
+    }
+    .btn-sel-action {
+      padding: 7px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--gold);
+      background: var(--surface);
+      color: var(--accent);
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+    .btn-sel-action:hover { background: var(--accent-bg2); }
+    .btn-sel-action.primary {
+      background: var(--gold);
+      color: #fff;
+      border-color: var(--gold);
+    }
+    .btn-sel-action.primary:hover { opacity: 0.88; }
+
+    /* ── Caption panel ── */
+    .caption-panel {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      padding: 18px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-top: 12px;
+    }
+    .caption-panel.visible { display: flex; }
+    .caption-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .caption-panel-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--gold);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .caption-panel-title span { font-size: 1rem; }
+    .caption-fields {
+      display: flex;
+      gap: 8px;
+    }
+    .caption-fields .field-input { flex: 1; }
+    .caption-output {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      font-size: 0.88rem;
+      line-height: 1.7;
+      color: var(--text);
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      min-height: 80px;
+      font-family: inherit;
+      position: relative;
+    }
+    .caption-output.empty {
+      color: var(--muted2);
+      font-style: italic;
+      min-height: 40px;
+      display: flex;
+      align-items: center;
+    }
+    .caption-actions {
+      display: flex;
+      gap: 6px;
+    }
+    .btn-caption {
+      padding: 9px 16px;
+      border-radius: var(--radius-sm);
+      border: none;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+    .btn-caption.generate {
+      background: #075E54;
+      color: #fff;
+    }
+    .btn-caption.generate:hover { opacity: 0.88; }
+    .btn-caption.generate:disabled { background: #a0c4bf; cursor: wait; }
+    .btn-caption.copy {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text2);
+    }
+    .btn-caption.copy:hover { background: var(--border); }
+    .btn-caption.copy.copied {
+      background: var(--success-bg);
+      border-color: var(--success);
+      color: var(--success);
+    }
+
+    /* pad bottom of page so content isn't hidden behind bar */
+    body { padding-bottom: 48px; }
+
+    /* ── Dark mode (#2) ── */
+    body.dark {
+      --bg: #1a1a1a;
+      --surface: #222;
+      --surface2: #2a2a2a;
+      --border: #333;
+      --border2: #444;
+      --text: #eee;
+      --text2: #ccc;
+      --muted: #888;
+      --muted2: #666;
+      --accent-bg: #2a1010;
+      --accent-bg2: #1f0a0a;
+    }
+    .dark-toggle {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      width: 32px; height: 32px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-left: 12px;
+      vertical-align: middle;
+      transition: border-color 0.2s;
+      color: var(--text);
+    }
+    .dark-toggle:hover { border-color: var(--gold); }
+
+    /* ── Loading skeletons (#7) ── */
+    .skeleton {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+    }
+    .dark .skeleton {
+      background: linear-gradient(90deg, #2a2a2a 25%, #333 50%, #2a2a2a 75%);
+      background-size: 200% 100%;
+    }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .skeleton-card {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .skeleton-card .skeleton-label {
+      height: 32px;
+      border-bottom: 1px solid var(--border);
+    }
+    .skeleton-card .skeleton-img {
+      aspect-ratio: 1/1;
+    }
+    .skeleton-card .skeleton-actions {
+      height: 48px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ── Shot order pills (#4) ── */
+    .shot-order-section {
+      margin-top: 12px;
+      padding: 10px 14px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+    .shot-order-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .shot-order-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .shot-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 5px 10px;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text2);
+      cursor: grab;
+      user-select: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .shot-pill:active { cursor: grabbing; }
+    .shot-pill.dragging { opacity: 0.4; border-color: var(--gold); }
+    .shot-pill.drag-over { box-shadow: 0 0 0 2px var(--gold); }
+    .shot-pill .grip { color: var(--muted2); font-size: 0.8rem; margin-right: 2px; }
+
+    /* ── Compare modal (#3) ── */
+    .compare-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1100;
+      padding: 20px;
+    }
+    .compare-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-md);
+      max-width: min(1400px, 95vw); width: 100%;
+      max-height: 90vh;
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .compare-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .compare-header h3 {
+      font-size: 0.85rem; font-weight: 700; color: var(--accent);
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .compare-close {
+      border: none; background: transparent; font-size: 1.4rem;
+      cursor: pointer; color: var(--muted); line-height: 1; padding: 4px 8px;
+    }
+    .compare-close:hover { color: var(--text); }
+    .compare-images {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+      padding: 16px; overflow: auto;
+    }
+    .compare-images figure {
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .compare-images figcaption {
+      font-size: 0.72rem; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .compare-images img {
+      width: 100%; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); object-fit: cover;
+    }
+    @media (max-width: 600px) {
+      .compare-images { grid-template-columns: 1fr; }
+    }
+
+    /* ── Session history (#6) ── */
+    .history-section {
+      width: 100%; margin-top: 20px;
+    }
+    .history-header {
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; padding: 8px 0;
+    }
+    .history-header h4 {
+      font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--muted);
+    }
+    .history-header .history-toggle-icon {
+      font-size: 0.7rem; color: var(--muted2); transition: transform 0.2s;
+    }
+    .history-header.open .history-toggle-icon { transform: rotate(180deg); }
+    .history-body { display: none; overflow-x: auto; padding: 8px 0; }
+    .history-body.visible { display: block; }
+    .history-scroll {
+      display: flex; gap: 10px; min-width: max-content;
+    }
+    .history-card {
+      flex-shrink: 0;
+      width: 140px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px;
+      cursor: default;
+    }
+    .history-card-time {
+      font-size: 0.65rem; color: var(--muted2); margin-bottom: 4px;
+    }
+    .history-card-info {
+      font-size: 0.72rem; color: var(--text2); font-weight: 500;
+      margin-bottom: 6px;
+    }
+    .history-card-thumbs {
+      display: flex; gap: 4px;
+    }
+    .history-card-thumbs img {
+      width: 36px; height: 36px; border-radius: 4px;
+      object-fit: cover; border: 1px solid var(--border);
+    }
+    .history-clear {
+      font-size: 0.68rem; color: var(--muted2); background: none;
+      border: none; cursor: pointer; text-decoration: underline;
+      font-family: inherit;
+    }
+    .history-clear:hover { color: var(--danger); }
+
+    /* ── Time estimate (#5) ── */
+    .progress-estimate {
+      font-size: 0.78rem; color: var(--muted2); margin-left: 6px;
+    }
+
+    /* ── Toast notification ── */
+    .toast {
+      position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 10px 18px;
+      font-size: 0.82rem; color: var(--text); box-shadow: var(--shadow-md);
+      z-index: 2000; animation: toastIn 0.3s ease;
+    }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(-10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
+    /* ── Compare button in result card actions ── */
+    .btn-compare {
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: var(--surface2);
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+    .btn-compare:hover { background: var(--border); color: var(--text2); }
+
+    /* ── Mobile responsiveness (#1, #10) ── */
+    @media (max-width: 600px) {
+      .container { padding: 0 12px; }
+      .card { padding: 16px; }
+      .provider-group { flex-direction: column; }
+      .shot-grid { grid-template-columns: 1fr; }
+      .results-grid { grid-template-columns: 1fr; }
+      .batch-angles-grid { grid-template-columns: 1fr; }
+      .presets-row { gap: 4px; }
+      .preset-btn { padding: 5px 10px; font-size: 0.7rem; }
+      .cost-bar-section:not(.total) { display: none; }
+      .cost-bar { padding: 0 10px; }
+    }
+    @media (max-width: 400px) {
+      header h1 { font-size: 1.3rem; }
+      .drop-zone { padding: 24px 16px; }
+      .cost-bar { font-size: 0.65rem; }
+      .cost-value.total-cost { font-size: 0.78rem; }
+      .cost-bar-reset { font-size: 0.55rem; padding: 2px 8px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <img id="brand-logo" src="/assets/brands/mina/logo.png" alt="" class="brand-logo" />
+    <select class="brand-select" id="brand-select" title="Switch brand"></select>
+    <button class="dark-toggle" id="dark-toggle" title="Toggle dark mode">☾</button>
+  </div>
+  <h1>Product Shot Pipeline</h1>
+  <p>Upload references, pick your shots, generate</p>
+</header>
+
+<div class="container">
+
+  <!-- ═══ UPLOAD ═══ -->
+  <div class="card" id="card-upload">
+    <div class="card-label">1. Upload Reference Photos</div>
+
+    <div class="mode-tabs">
+      <button class="mode-tab active" data-mode="single">Upload Images</button>
+      <button class="mode-tab" data-mode="batch">Batch Folder</button>
+    </div>
+
+    <div class="mode-panel active" id="panel-single">
+      <div class="drop-zone" id="drop-zone">
+        <input type="file" id="file-input" accept="image/*,.heic,.heif" multiple />
+        <h3>Drop product photos here</h3>
+        <p>or click to browse</p>
+        <div class="drop-hint">JPG, PNG, HEIC, WEBP — up to 10 images</div>
+      </div>
+      <div class="url-scrape-row">
+        <div class="url-scrape-divider"><span>or paste a product link</span></div>
+        <div class="url-scrape-input-row">
+          <input type="text" id="scrape-url" class="field-input" placeholder="https://houseofmina.store/products/..." />
+          <button class="btn-scrape" id="btn-scrape">Fetch Images</button>
+        </div>
+        <div class="url-scrape-status" id="scrape-status"></div>
+      </div>
+      <div id="previews">
+        <div class="previews-header">
+          <span id="preview-count">0 images</span>
+          <button class="clear-btn" id="btn-clear-all">Clear</button>
+        </div>
+        <div class="previews-grid" id="previews-grid"></div>
+      </div>
+    </div>
+
+    <div class="mode-panel" id="panel-batch">
+      <div class="batch-info">
+        Point to a folder with <strong>one subfolder per product</strong>. Each subfolder has reference images.
+        Outputs save to <code>output/</code> inside your folder.
+      </div>
+      <div class="field">
+        <div class="field-label">Products folder path</div>
+        <div class="folder-row">
+          <input type="text" id="folder-path" class="field-input" placeholder="/Users/you/Products" />
+          <button type="button" class="btn-browse" id="btn-browse-folder" title="Open a native folder picker">Browse…</button>
+          <div class="recent-folders">
+            <button type="button" class="btn-browse" id="btn-recent-folders" title="Recently used folders">Recent ▾</button>
+            <div class="recent-folders-menu" id="recent-folders-menu"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SHOT SELECTION ═══ -->
+  <div class="card" id="card-shots">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div class="card-label" style="margin-bottom:0;">2. Choose Shots</div>
+      <span class="shot-count-badge" id="shot-count">0 selected</span>
+    </div>
+
+    <!-- Quick presets -->
+    <div class="presets-row">
+      <button class="preset-btn" data-preset="quick">Quick (Hero + Detail)</button>
+      <button class="preset-btn" data-preset="ecommerce">All Ecommerce</button>
+      <button class="preset-btn" data-preset="model">All Model</button>
+      <button class="preset-btn" data-preset="editorial">Editorial Set</button>
+      <button class="preset-btn" data-preset="all">Everything</button>
+    </div>
+
+    <div id="shot-categories"></div>
+  </div>
+
+  <!-- ═══ EXTRAS ═══ -->
+  <div class="card">
+    <div class="card-label">3. Generate</div>
+
+    <div class="field-label" style="margin-bottom:8px;">AI Provider</div>
+    <div class="provider-group" id="provider-group">
+      <!-- Filled dynamically from /providers -->
+    </div>
+    <div class="provider-note" id="provider-note"></div>
+
+    <div class="field" style="margin-bottom:16px;">
+      <div class="field-label">Custom direction <span style="text-transform:none;letter-spacing:0;font-weight:400">(optional)</span></div>
+      <input type="text" id="custom-instruction" class="field-input" placeholder='e.g. "use rose gold tones" or "dramatic shadows"' />
+    </div>
+    <label class="pair-toggle" style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;padding:12px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface2);cursor:pointer;">
+      <input type="checkbox" id="auto-match-ring" style="margin-top:3px;accent-color:var(--accent);width:16px;height:16px;flex-shrink:0;" />
+      <span style="display:flex;flex-direction:column;gap:2px;">
+        <span style="font-size:0.78rem;font-weight:600;color:var(--text);">Auto-match ring for bracelets</span>
+        <span style="font-size:0.72rem;color:var(--muted);line-height:1.4;">If a bracelet / bangle / cuff has no matching ring in the source photos, generate a miniaturized version of the bracelet's design scaled down to a ring and include it in every shot.</span>
+      </span>
+    </label>
+    <label class="pair-toggle" style="display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;padding:12px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface2);cursor:pointer;">
+      <input type="checkbox" id="multi-piece" style="margin-top:3px;accent-color:var(--accent);width:16px;height:16px;flex-shrink:0;" />
+      <span style="display:flex;flex-direction:column;gap:2px;">
+        <span style="font-size:0.78rem;font-weight:600;color:var(--text);">Folder contains multiple pieces</span>
+        <span style="font-size:0.72rem;color:var(--muted);line-height:1.4;">Turn on when your reference photos include more than one distinct jewelry piece (e.g., a bangle AND a matching ring). The system will treat the largest / most photographed piece as the primary subject and keep companion pieces as context only — preventing the model from generating the wrong item.</span>
+      </span>
+    </label>
+    <div id="overlay-row" style="display:none;margin-bottom:16px;padding:12px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface2);">
+      <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
+        <input type="checkbox" id="overlay-enabled" style="margin-top:3px;accent-color:var(--accent);width:16px;height:16px;flex-shrink:0;" />
+        <span style="display:flex;flex-direction:column;gap:2px;">
+          <span style="font-size:0.78rem;font-weight:600;color:var(--text);">Brand overlay (logo + weight)</span>
+          <span style="font-size:0.72rem;color:var(--muted);line-height:1.4;">Composite the brand logo and weight caption onto every finished ecom shot. Leave weight blank to show the logo only.</span>
+        </span>
+      </label>
+      <input type="text" id="weight-input" class="field-input" placeholder='e.g. 3.78g' style="margin-top:10px;" />
+    </div>
+    <button class="btn-generate" id="btn-generate" disabled>Generate Shots</button>
+    <button class="btn-cancel-batch" id="btn-cancel-batch">Cancel Batch</button>
+    <button class="btn-resume-batch" id="btn-resume-batch">Resume Batch</button>
+  </div>
+
+  <!-- ═══ PROGRESS ═══ -->
+  <div id="progress">
+    <div class="progress-inner">
+      <div class="spinner"></div>
+      <div class="progress-text" id="progress-text"><strong>Generating...</strong> Analyzing jewelry</div>
+      <div class="progress-steps" id="progress-steps"></div>
+    </div>
+  </div>
+
+  <div id="error-box"></div>
+
+  <!-- ═══ RESULTS ═══ -->
+  <div id="results">
+    <div class="results-header">
+      <div class="results-title">Generated Shots</div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <button class="btn-download-all" id="btn-select-toggle" style="display:none">Select Images</button>
+        <button class="btn-download-all" id="btn-download-all" style="display:none">Download All ZIP</button>
+      </div>
+    </div>
+
+    <!-- Selection toolbar (appears when selecting) -->
+    <div class="selection-toolbar" id="selection-toolbar">
+      <span class="sel-count" id="sel-count">0 selected</span>
+      <button class="btn-sel-action" id="btn-select-all">Select All</button>
+      <button class="btn-sel-action" id="btn-sel-export">Export Selected ZIP</button>
+      <button class="btn-sel-action primary" id="btn-sel-caption">WhatsApp Caption</button>
+    </div>
+
+    <div class="results-grid" id="results-grid"></div>
+
+    <!-- Caption panel -->
+    <div class="caption-panel" id="caption-panel">
+      <div class="caption-panel-header">
+        <div class="caption-panel-title"><span>💬</span> WhatsApp Caption</div>
+        <button class="clear-btn" id="btn-close-caption">Close</button>
+      </div>
+      <div class="caption-fields">
+        <input type="text" id="caption-product-name" class="field-input" placeholder="Product name (e.g. Emerald Tennis Bracelet)" />
+        <input type="text" id="caption-extra" class="field-input" placeholder="Extra details (e.g. certified stone, special price)" />
+      </div>
+      <div class="caption-actions">
+        <button class="btn-caption generate" id="btn-generate-caption">Generate Caption</button>
+        <button class="btn-caption copy" id="btn-copy-caption" style="display:none">Copy to Clipboard</button>
+      </div>
+      <div class="caption-output empty" id="caption-output">Select images and click "Generate Caption" to create a WhatsApp post</div>
+    </div>
+  </div>
+
+  <!-- ═══ SESSION HISTORY ═══ -->
+  <div class="history-section" id="history-section" style="display:none;">
+    <div class="history-header" id="history-header">
+      <h4>Recent Generations</h4>
+      <span class="history-toggle-icon">▼</span>
+    </div>
+    <div class="history-body" id="history-body">
+      <div class="history-scroll" id="history-scroll"></div>
+      <button class="history-clear" id="history-clear">Clear history</button>
+    </div>
+  </div>
+
+  <!-- ═══ BATCH LOG & RESULTS ═══ -->
+  <div id="batch-log">
+    <div class="results-title" style="margin-bottom:6px;">Batch Progress</div>
+    <div id="batch-status">
+      <div class="status-spinner"></div>
+      <span class="status-product" id="status-product"></span>
+      <span class="status-arrow">→</span>
+      <span class="status-shot" id="status-shot"></span>
+      <span class="status-count" id="status-count"></span>
+    </div>
+    <div class="log-box"><div id="log-entries"></div></div>
+  </div>
+  <div id="batch-results"></div>
+
+</div>
+
+<!-- Compare overlay (#3) -->
+<div class="compare-overlay" id="compare-overlay" style="display:none;">
+  <div class="compare-box">
+    <div class="compare-header">
+      <h3>Before / After</h3>
+      <button class="compare-close" id="compare-close">×</button>
+    </div>
+    <div class="compare-images" id="compare-images"></div>
+  </div>
+</div>
+
+<div class="cost-bar">
+  <div class="cost-bar-section total">
+    <span class="cost-label">Session</span>
+    <span class="cost-value total-cost" id="cost-total-value">$0.000</span>
+    <span class="cost-images" id="cost-total-images">0 imgs</span>
+  </div>
+  <div class="cost-bar-section" id="cost-gemini">
+    <span class="cost-provider-dot gemini"></span>
+    <span class="cost-label">Gemini</span>
+    <span class="cost-value">$0.000</span>
+    <span class="cost-images">0</span>
+  </div>
+  <div class="cost-bar-section" id="cost-nanobana2">
+    <span class="cost-provider-dot nanobana2"></span>
+    <span class="cost-label">NB2</span>
+    <span class="cost-value">$0.000</span>
+    <span class="cost-images">0</span>
+  </div>
+  <div class="cost-bar-section" id="cost-openai">
+    <span class="cost-provider-dot openai"></span>
+    <span class="cost-label">OpenAI</span>
+    <span class="cost-value">$0.000</span>
+    <span class="cost-images">0</span>
+  </div>
+  <button class="cost-bar-reset" id="cost-reset-btn">Reset</button>
+</div>
+
+<!-- Prompt inspector modal -->
+<div class="modal-overlay" id="prompt-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="prompt-modal-title">Prompt</div>
+      <button class="modal-close" id="prompt-modal-close" title="Close (Esc)">×</button>
+    </div>
+    <div class="modal-body" id="prompt-modal-body"></div>
+    <div class="modal-actions">
+      <button class="btn-retry" id="prompt-modal-copy">Copy prompt</button>
+    </div>
+  </div>
+</div>
+
+<!-- Folder scan / pre-run exclusion modal -->
+<div class="modal-overlay" id="scan-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">Which subfolders to process?</div>
+      <button class="modal-close" id="scan-modal-close" title="Close (Esc)">×</button>
+    </div>
+    <div class="modal-body" id="scan-modal-body">Scanning…</div>
+    <div class="modal-actions" style="display:flex;gap:8px;justify-content:space-between;align-items:center;flex-wrap:wrap;">
+      <div style="display:flex;gap:8px;">
+        <button class="btn-retry" id="scan-modal-all" type="button">Select all</button>
+        <button class="btn-retry" id="scan-modal-none" type="button">Deselect all</button>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-retry" id="scan-modal-cancel" type="button">Cancel</button>
+        <button class="btn-generate" id="scan-modal-start" type="button" style="padding:8px 18px;font-size:0.85rem;">Start batch</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Brand selector ────────────────────────────────────────────────────────
+  // Active brand is persisted in localStorage and auto-injected into every
+  // API call via fetch/EventSource interceptors below, so feature code below
+  // never has to thread brand through manually.
+  const BRAND_STORAGE_KEY = 'hom-active-brand';
+  function getBrand() {
+    return localStorage.getItem(BRAND_STORAGE_KEY) || 'mina';
+  }
+  function setBrand(id) {
+    localStorage.setItem(BRAND_STORAGE_KEY, id);
+  }
+
+  // Read overlay settings from the UI. Returns null when the controls aren't
+  // present yet (e.g. page load ordering). Callers that inject into requests
+  // should no-op in that case.
+  function getOverlayPayload() {
+    const cb = document.getElementById('overlay-enabled');
+    const row = document.getElementById('overlay-row');
+    if (!cb || !row || row.style.display === 'none') return null;
+    const weight = document.getElementById('weight-input');
+    return { enabled: cb.checked ? '1' : '0', weightText: (weight && weight.value) || '' };
+  }
+  // Endpoints whose requests hit generateShot and should carry overlay opts.
+  const OVERLAY_GEN_ENDPOINTS = ['/generate', '/generate-angle', '/retry-angle', '/batch'];
+  function isOverlayEndpoint(url) {
+    return OVERLAY_GEN_ENDPOINTS.some(e => url === e || url.startsWith(e + '?') || url.startsWith(e + '/'));
+  }
+
+  (function initBrandHooks() {
+    const _fetch = window.fetch.bind(window);
+    const BRAND_GET_ENDPOINTS = ['/shots', '/batch', '/scan-folder', '/product/reference'];
+    window.fetch = function(input, init) {
+      const brand = getBrand();
+      let url = input;
+      let opts = init || {};
+      if (typeof url === 'string' && url.startsWith('/')) {
+        if (BRAND_GET_ENDPOINTS.some(e => url === e || url.startsWith(e + '?') || url.startsWith(e + '/')) && !/[?&]brand=/.test(url)) {
+          url += (url.includes('?') ? '&' : '?') + 'brand=' + encodeURIComponent(brand);
+        }
+      }
+      const overlay = typeof url === 'string' && url.startsWith('/') && isOverlayEndpoint(url) ? getOverlayPayload() : null;
+      if (opts.body) {
+        if (opts.body instanceof FormData) {
+          if (!opts.body.has('brand')) opts.body.append('brand', brand);
+          if (overlay) {
+            if (!opts.body.has('overlayEnabled')) opts.body.append('overlayEnabled', overlay.enabled);
+            if (!opts.body.has('weightText')) opts.body.append('weightText', overlay.weightText);
+          }
+        } else if (typeof opts.body === 'string') {
+          const ct = (opts.headers && (opts.headers['Content-Type'] || opts.headers['content-type'])) || '';
+          if (ct.includes('application/json')) {
+            try {
+              const parsed = JSON.parse(opts.body);
+              if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                if (parsed.brand === undefined) parsed.brand = brand;
+                if (overlay && parsed.overlayEnabled === undefined) parsed.overlayEnabled = overlay.enabled;
+                if (overlay && parsed.weightText === undefined) parsed.weightText = overlay.weightText;
+                opts = Object.assign({}, opts, { body: JSON.stringify(parsed) });
+              }
+            } catch (e) {}
+          }
+        }
+      }
+      return _fetch(url, opts);
+    };
+
+    const _ES = window.EventSource;
+    window.EventSource = function(url, cfg) {
+      if (typeof url === 'string' && url.startsWith('/')) {
+        if (!/[?&]brand=/.test(url)) {
+          url += (url.includes('?') ? '&' : '?') + 'brand=' + encodeURIComponent(getBrand());
+        }
+        if (isOverlayEndpoint(url)) {
+          const overlay = getOverlayPayload();
+          if (overlay && !/[?&]overlayEnabled=/.test(url)) {
+            url += '&overlayEnabled=' + encodeURIComponent(overlay.enabled)
+                +  '&weightText=' + encodeURIComponent(overlay.weightText);
+          }
+        }
+      }
+      return new _ES(url, cfg);
+    };
+  })();
+
+  (async function initBrandSelector() {
+    const select = document.getElementById('brand-select');
+    const logo = document.getElementById('brand-logo');
+    let brands = [];
+    try {
+      const r = await fetch('/brands');
+      const j = await r.json();
+      brands = j.brands || [];
+    } catch (e) {
+      brands = [{ id: 'mina', shortLabel: 'Mina', logo: '/assets/brands/mina/logo.png' }];
+    }
+    // Ensure stored brand is valid
+    if (!brands.find(b => b.id === getBrand())) setBrand(brands[0]?.id || 'mina');
+    select.innerHTML = brands.map(b =>
+      `<option value="${b.id}">${b.shortLabel || b.label}</option>`
+    ).join('');
+    function applyBrand() {
+      const b = brands.find(x => x.id === getBrand()) || brands[0];
+      if (!b) return;
+      select.value = b.id;
+      logo.src = document.body.classList.contains('dark') ? (b.logoDark || b.logo) : b.logo;
+      logo.alt = b.shortLabel || b.label;
+      // Swap scrape placeholder
+      const scrapeInput = document.getElementById('scrape-url');
+      if (scrapeInput && b.scrapePlaceholder) scrapeInput.placeholder = b.scrapePlaceholder;
+      // Overlay row: show only when brand supports it, persist per-brand toggle state
+      const overlayRow = document.getElementById('overlay-row');
+      const overlayCb  = document.getElementById('overlay-enabled');
+      if (overlayRow && overlayCb) {
+        const supports = !!(b.overlay && b.overlay.supported);
+        overlayRow.style.display = supports ? '' : 'none';
+        if (supports) {
+          const storeKey = 'hom-overlay-' + b.id;
+          const stored = localStorage.getItem(storeKey);
+          overlayCb.checked = stored === null ? !!b.overlay.defaultEnabled : stored === '1';
+          overlayCb.onchange = () => localStorage.setItem(storeKey, overlayCb.checked ? '1' : '0');
+        }
+      }
+      // Refresh shot catalog for this brand (extra shots may be exposed/hidden)
+      if (typeof loadShotsForBrand === 'function') loadShotsForBrand();
+    }
+    select.addEventListener('change', () => {
+      setBrand(select.value);
+      applyBrand();
+    });
+    // Re-apply on dark-mode toggle to swap logo variant
+    const darkBtn = document.getElementById('dark-toggle');
+    if (darkBtn) darkBtn.addEventListener('click', () => setTimeout(applyBrand, 0));
+    window.__applyBrand = applyBrand;
+    applyBrand();
+  })();
+
+  // ── State ─────────────────────────────────────────────────────────────────
+  let selectedFiles = [];
+  let selectedShots = []; // Array for ordered shots (#4)
+  let shotCatalog = {};
+  let availableProviders = {};
+  let selectedProvider = 'gemini';
+  let generatedImages = [];
+  let genState = { files: [], customInstruction: '' };
+  let selectionMode = false;
+  let selectedResultIndices = new Set();
+
+  // ── Dark mode (#2) ───────────────────────────────────────────────────────
+  (function initDarkMode() {
+    const stored = localStorage.getItem('hom-dark-mode');
+    if (stored === '1') document.body.classList.add('dark');
+    const btn = document.getElementById('dark-toggle');
+    function updateIcon() {
+      btn.textContent = document.body.classList.contains('dark') ? '☀' : '☾';
+    }
+    updateIcon();
+    btn.addEventListener('click', () => {
+      document.body.classList.toggle('dark');
+      localStorage.setItem('hom-dark-mode', document.body.classList.contains('dark') ? '1' : '0');
+      updateIcon();
+    });
+  })();
+
+  // ── Generation time estimate helpers (#5) ────────────────────────────────
+  const DEFAULT_TIMES = { gemini: 25, nanobana2: 20, openai: 30 };
+  function getGenTimes() {
+    try { return JSON.parse(localStorage.getItem('hom-gen-times') || '{}'); } catch { return {}; }
+  }
+  function recordGenTime(provider, seconds) {
+    const times = getGenTimes();
+    if (!times[provider]) times[provider] = [];
+    times[provider].push(seconds);
+    if (times[provider].length > 20) times[provider] = times[provider].slice(-20);
+    localStorage.setItem('hom-gen-times', JSON.stringify(times));
+  }
+  function avgGenTime(provider) {
+    const times = getGenTimes();
+    const arr = times[provider];
+    if (!arr || arr.length === 0) return DEFAULT_TIMES[provider] || 25;
+    return arr.reduce((a, b) => a + b, 0) / arr.length;
+  }
+
+  // ── Session history helpers (#6) ─────────────────────────────────────────
+  function getHistory() {
+    try { return JSON.parse(localStorage.getItem('hom-history') || '[]'); } catch { return []; }
+  }
+  function saveHistory(entry) {
+    const h = getHistory();
+    h.unshift(entry);
+    if (h.length > 5) h.length = 5;
+    localStorage.setItem('hom-history', JSON.stringify(h));
+    renderHistory();
+  }
+  function clearHistory() {
+    localStorage.removeItem('hom-history');
+    renderHistory();
+  }
+  function resizeToThumbnail(b64, size) {
+    return new Promise(resolve => {
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement('canvas');
+        c.width = size; c.height = size;
+        const ctx = c.getContext('2d');
+        ctx.drawImage(img, 0, 0, size, size);
+        resolve(c.toDataURL('image/jpeg', 0.5).split(',')[1]);
+      };
+      img.onerror = () => resolve('');
+      img.src = 'data:image/png;base64,' + b64;
+    });
+  }
+  function renderHistory() {
+    const section = document.getElementById('history-section');
+    const scroll = document.getElementById('history-scroll');
+    const h = getHistory();
+    if (h.length === 0) { section.style.display = 'none'; return; }
+    section.style.display = '';
+    scroll.innerHTML = '';
+    h.forEach(entry => {
+      const card = document.createElement('div');
+      card.className = 'history-card';
+      const d = new Date(entry.timestamp);
+      const timeStr = d.toLocaleDateString(undefined, { month:'short', day:'numeric' }) + ' ' + d.toLocaleTimeString(undefined, { hour:'2-digit', minute:'2-digit' });
+      card.innerHTML = `
+        <div class="history-card-time">${timeStr}</div>
+        <div class="history-card-info">${entry.provider} · ${entry.shotCount} shot${entry.shotCount !== 1 ? 's' : ''}</div>
+        <div class="history-card-thumbs">${(entry.thumbnails || []).map(t => t ? `<img src="data:image/jpeg;base64,${t}" />` : '').join('')}</div>
+      `;
+      scroll.appendChild(card);
+    });
+  }
+
+  // ── Toast helper ─────────────────────────────────────────────────────────
+  function showToast(msg, duration = 3000) {
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => { t.remove(); }, duration);
+  }
+
+  const PRESETS = {
+    quick:      ['ecom_hero', 'ecom_detail'],
+    ecommerce:  ['ecom_hero', 'ecom_angle', 'ecom_detail', 'ecom_flat', 'ecom_stand', 'ecom_group'],
+    model:      ['model_wrist', 'model_neck', 'model_ear', 'model_lifestyle'],
+    editorial:  ['ecom_hero', 'ecom_detail', 'model_wrist', 'marble'],
+    all:        [], // filled after catalog loads
+  };
+
+  const CATEGORY_META = {
+    ecommerce: { label: 'Ecommerce',  cls: 'cat-ecommerce' },
+    model:     { label: 'Model Shots', cls: 'cat-model' },
+    marble:    { label: 'Surface / Marble', cls: 'cat-marble' },
+    taheri:    { label: 'Taheri Signature', cls: 'cat-marble' },
+  };
+
+  const LABEL_CLASS = {
+    ecommerce: 'label-ecommerce',
+    model:     'label-model',
+    marble:    'label-marble',
+    taheri:    'label-marble',
+  };
+
+  // ── Elements ──────────────────────────────────────────────────────────────
+  const dropZone      = document.getElementById('drop-zone');
+  const fileInput     = document.getElementById('file-input');
+  const previewsWrap  = document.getElementById('previews');
+  const previewsGrid  = document.getElementById('previews-grid');
+  const previewCount  = document.getElementById('preview-count');
+  const btnClearAll   = document.getElementById('btn-clear-all');
+  const btnGenerate   = document.getElementById('btn-generate');
+  const progressEl    = document.getElementById('progress');
+  const progressText  = document.getElementById('progress-text');
+  const progressSteps = document.getElementById('progress-steps');
+  const errorBox      = document.getElementById('error-box');
+  const resultsEl     = document.getElementById('results');
+  const resultsGrid   = document.getElementById('results-grid');
+  const customInput   = document.getElementById('custom-instruction');
+  const autoMatchRingCheckbox = document.getElementById('auto-match-ring');
+  const multiPieceCheckbox    = document.getElementById('multi-piece');
+  const shotCountEl   = document.getElementById('shot-count');
+  const btnDownloadAll = document.getElementById('btn-download-all');
+
+  // ── Load shot catalog from server ─────────────────────────────────────────
+  async function loadCatalog() {
+    const [shotsRes, provRes] = await Promise.all([fetch('/shots'), fetch('/providers')]);
+    shotCatalog = await shotsRes.json();
+    availableProviders = await provRes.json();
+    PRESETS.all = Object.keys(shotCatalog);
+    renderShotSelector();
+  }
+
+  // Called when the active brand changes — refetches /shots so brand-specific
+  // shot types appear/disappear in the selector.
+  async function loadShotsForBrand() {
+    try {
+      const r = await fetch('/shots');
+      shotCatalog = await r.json();
+      PRESETS.all = Object.keys(shotCatalog);
+      // Drop any previously-selected shots that no longer exist in this brand.
+      selectedShots = selectedShots.filter(id => shotCatalog[id]);
+      renderShotSelector();
+    } catch (e) { /* non-fatal */ }
+    renderProviders();
+  }
+
+  const PROVIDER_INFO = {
+    gemini:    { label: 'Gemini',         sub: 'Nano Banana Pro' },
+    openai:    { label: 'OpenAI',         sub: 'GPT Image 1.5' },
+    nanobana2: { label: 'Nano Banana 2',  sub: 'Gemini 3.1 Flash · 2K' },
+  };
+
+  function renderProviders() {
+    const group = document.getElementById('provider-group');
+    const note = document.getElementById('provider-note');
+    group.innerHTML = '';
+
+    for (const [id, info] of Object.entries(availableProviders)) {
+      const meta = PROVIDER_INFO[id] || { label: id, sub: '' };
+      const btn = document.createElement('button');
+      btn.className = 'provider-btn' + (id === selectedProvider ? ' active' : '');
+      btn.dataset.provider = id;
+      btn.innerHTML = `${meta.label}<span class="provider-sub">${meta.sub}</span>`;
+      btn.addEventListener('click', () => {
+        selectedProvider = id;
+        document.querySelectorAll('.provider-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        note.textContent = '';
+      });
+      group.appendChild(btn);
+    }
+
+    // Default to first available if gemini not present
+    if (!availableProviders[selectedProvider] && Object.keys(availableProviders).length > 0) {
+      selectedProvider = Object.keys(availableProviders)[0];
+      renderProviders();
+    }
+  }
+
+  function renderShotSelector() {
+    const container = document.getElementById('shot-categories');
+    container.innerHTML = '';
+
+    const categories = {};
+    for (const [id, shot] of Object.entries(shotCatalog)) {
+      const cat = shot.category;
+      if (!categories[cat]) categories[cat] = [];
+      categories[cat].push(shot);
+    }
+
+    for (const [cat, shots] of Object.entries(categories)) {
+      const meta = CATEGORY_META[cat] || { label: cat, cls: '' };
+
+      const section = document.createElement('div');
+      section.className = 'shot-category';
+
+      const header = document.createElement('div');
+      header.className = 'shot-category-header';
+
+      const title = document.createElement('div');
+      title.className = `shot-category-title ${meta.cls}`;
+      title.innerHTML = `<span class="cat-dot"></span>${meta.label}`;
+
+      const selectAll = document.createElement('button');
+      selectAll.className = 'select-all-btn';
+      selectAll.textContent = 'Select all';
+      selectAll.addEventListener('click', () => {
+        const allInCat = shots.map(s => s.id);
+        const allSelected = allInCat.every(id => selectedShots.includes(id));
+        if (allSelected) {
+          selectedShots = selectedShots.filter(id => !allInCat.includes(id));
+        } else {
+          allInCat.forEach(id => { if (!selectedShots.includes(id)) selectedShots.push(id); });
+        }
+        updateShotUI();
+      });
+
+      header.append(title, selectAll);
+
+      const grid = document.createElement('div');
+      grid.className = 'shot-grid';
+
+      shots.forEach(shot => {
+        const opt = document.createElement('div');
+        opt.className = 'shot-option';
+        opt.dataset.shotId = shot.id;
+        opt.innerHTML = `
+          <div class="shot-checkbox">
+            <svg viewBox="0 0 14 14"><polyline points="2.5 7 5.5 10 11.5 4"></polyline></svg>
+          </div>
+          <div class="shot-info">
+            <div class="shot-name">${shot.label}</div>
+            <div class="shot-desc">${shot.description}</div>
+          </div>
+        `;
+        opt.addEventListener('click', () => {
+          const idx = selectedShots.indexOf(shot.id);
+          if (idx >= 0) selectedShots.splice(idx, 1);
+          else selectedShots.push(shot.id);
+          updateShotUI();
+        });
+        grid.appendChild(opt);
+      });
+
+      section.append(header, grid);
+      container.appendChild(section);
+    }
+  }
+
+  function updateShotUI() {
+    document.querySelectorAll('.shot-option').forEach(opt => {
+      opt.classList.toggle('checked', selectedShots.includes(opt.dataset.shotId));
+    });
+    shotCountEl.textContent = `${selectedShots.length} selected`;
+    updateGenerateButton();
+
+    // Update preset buttons
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      const ids = PRESETS[btn.dataset.preset] || [];
+      const isActive = ids.length > 0 && ids.every(id => selectedShots.includes(id)) && selectedShots.length === ids.length;
+      btn.classList.toggle('active', isActive);
+    });
+
+    // Render shot order pills (#4)
+    renderShotOrderPills();
+  }
+
+  // ── Shot order drag-reorder pills (#4) ──────────────────────────────────
+  function renderShotOrderPills() {
+    let orderSection = document.getElementById('shot-order-section');
+    if (selectedShots.length === 0) {
+      if (orderSection) orderSection.style.display = 'none';
+      return;
+    }
+    if (!orderSection) {
+      orderSection = document.createElement('div');
+      orderSection.id = 'shot-order-section';
+      orderSection.className = 'shot-order-section';
+      document.getElementById('card-shots').appendChild(orderSection);
+    }
+    orderSection.style.display = '';
+    orderSection.innerHTML = '<div class="shot-order-title">Generation order (drag to reorder)</div>';
+    const pillsContainer = document.createElement('div');
+    pillsContainer.className = 'shot-order-pills';
+
+    selectedShots.forEach((shotId, idx) => {
+      const shot = shotCatalog[shotId];
+      const pill = document.createElement('div');
+      pill.className = 'shot-pill';
+      pill.draggable = true;
+      pill.dataset.idx = idx;
+      pill.innerHTML = `<span class="grip">\u22EE\u22EE</span>${shot ? shot.label : shotId}`;
+
+      pill.addEventListener('dragstart', (e) => {
+        pill.classList.add('dragging');
+        e.dataTransfer.setData('text/plain', idx.toString());
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      pill.addEventListener('dragend', () => pill.classList.remove('dragging'));
+      pill.addEventListener('dragover', (e) => { e.preventDefault(); pill.classList.add('drag-over'); });
+      pill.addEventListener('dragleave', () => pill.classList.remove('drag-over'));
+      pill.addEventListener('drop', (e) => {
+        e.preventDefault();
+        pill.classList.remove('drag-over');
+        const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+        const toIdx = idx;
+        if (fromIdx === toIdx) return;
+        const [moved] = selectedShots.splice(fromIdx, 1);
+        selectedShots.splice(toIdx, 0, moved);
+        renderShotOrderPills();
+      });
+      pillsContainer.appendChild(pill);
+    });
+    orderSection.appendChild(pillsContainer);
+  }
+
+  // ── Presets ───────────────────────────────────────────────────────────────
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const ids = PRESETS[btn.dataset.preset] || [];
+      selectedShots = [...ids];
+      updateShotUI();
+    });
+  });
+
+  // ── Mode tabs ─────────────────────────────────────────────────────────────
+  let currentMode = 'single';
+  document.querySelectorAll('.mode-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.mode-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      currentMode = tab.dataset.mode;
+      document.getElementById('panel-' + currentMode).classList.add('active');
+      updateGenerateButton();
+    });
+  });
+
+  // ── Drag & drop ───────────────────────────────────────────────────────────
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    addFiles(Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/') || /\.heic$/i.test(f.name)));
+  });
+  fileInput.addEventListener('change', () => {
+    addFiles(Array.from(fileInput.files));
+    fileInput.value = '';
+  });
+
+  function addFiles(files) {
+    const remaining = 10 - selectedFiles.length;
+    files.slice(0, remaining).forEach(f => selectedFiles.push(f));
+    renderPreviews();
+  }
+
+  function removeFile(index) {
+    selectedFiles.splice(index, 1);
+    renderPreviews();
+  }
+
+  // ── URL Scraping ───────────────────────────────────────────────────────────
+  const scrapeUrlInput  = document.getElementById('scrape-url');
+  const btnScrape       = document.getElementById('btn-scrape');
+  const scrapeStatus    = document.getElementById('scrape-status');
+
+  btnScrape.addEventListener('click', async () => {
+    const url = scrapeUrlInput.value.trim();
+    if (!url) return;
+    btnScrape.disabled = true;
+    btnScrape.textContent = 'Fetching...';
+    scrapeStatus.textContent = '';
+    scrapeStatus.className = 'url-scrape-status';
+    try {
+      const res = await fetch('/scrape-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed to fetch.');
+
+      // Convert base64 images to File objects and add them
+      const files = data.images.map((img, i) => {
+        const byteStr = atob(img.base64);
+        const bytes = new Uint8Array(byteStr.length);
+        for (let j = 0; j < byteStr.length; j++) bytes[j] = byteStr.charCodeAt(j);
+        return new File([bytes], img.name, { type: img.mimeType });
+      });
+
+      addFiles(files);
+      scrapeStatus.textContent = `${data.title} — ${files.length} image(s) loaded`;
+      scrapeStatus.className = 'url-scrape-status ok';
+      scrapeUrlInput.value = '';
+    } catch (err) {
+      scrapeStatus.textContent = err.message;
+      scrapeStatus.className = 'url-scrape-status err';
+    } finally {
+      btnScrape.disabled = false;
+      btnScrape.textContent = 'Fetch Images';
+    }
+  });
+
+  scrapeUrlInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') btnScrape.click();
+  });
+
+  function renderPreviews() {
+    previewsGrid.innerHTML = '';
+    if (selectedFiles.length === 0) {
+      previewsWrap.classList.remove('visible');
+      dropZone.style.display = '';
+      updateGenerateButton();
+      return;
+    }
+    dropZone.style.display = 'none';
+    previewsWrap.classList.add('visible');
+    previewCount.textContent = `${selectedFiles.length} image${selectedFiles.length > 1 ? 's' : ''}`;
+
+    selectedFiles.forEach((file, i) => {
+      const card = document.createElement('div');
+      card.className = 'preview-card';
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(file);
+      img.onload = () => URL.revokeObjectURL(img.src);
+      const rm = document.createElement('button');
+      rm.className = 'remove-btn';
+      rm.innerHTML = '\u2715';
+      rm.onclick = (e) => { e.stopPropagation(); removeFile(i); };
+      card.append(img, rm);
+      previewsGrid.appendChild(card);
+    });
+
+    if (selectedFiles.length < 10) {
+      const addCard = document.createElement('div');
+      addCard.className = 'add-more-card';
+      const addInput = document.createElement('input');
+      addInput.type = 'file';
+      addInput.accept = 'image/*,.heic,.heif';
+      addInput.multiple = true;
+      addInput.onchange = () => { addFiles(Array.from(addInput.files)); addInput.value = ''; };
+      addCard.innerHTML = '<span>+</span><p>Add</p>';
+      addCard.appendChild(addInput);
+      previewsGrid.appendChild(addCard);
+    }
+    updateGenerateButton();
+  }
+
+  function updateGenerateButton() {
+    const hasInput = currentMode === 'single'
+      ? selectedFiles.length > 0
+      : document.getElementById('folder-path').value.trim().length > 0;
+    const hasShots = selectedShots.length > 0;
+    btnGenerate.disabled = !(hasInput && hasShots);
+    btnGenerate.textContent = currentMode === 'batch' ? 'Process Batch' : `Generate ${selectedShots.length} Shot${selectedShots.length !== 1 ? 's' : ''}`;
+  }
+
+  document.getElementById('folder-path').addEventListener('input', updateGenerateButton);
+
+  // Native folder picker (macOS server-side)
+  const btnBrowseFolder = document.getElementById('btn-browse-folder');
+  if (btnBrowseFolder) {
+    btnBrowseFolder.addEventListener('click', async () => {
+      const input = document.getElementById('folder-path');
+      btnBrowseFolder.disabled = true;
+      const orig = btnBrowseFolder.textContent;
+      btnBrowseFolder.textContent = 'Opening…';
+      try {
+        const res = await fetch('/pick-folder', { method: 'POST' });
+        const data = await res.json();
+        if (data.path) {
+          input.value = data.path;
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        // If cancelled, just do nothing
+      } catch (err) {
+        showError('Folder picker failed: ' + err.message);
+      } finally {
+        btnBrowseFolder.disabled = false;
+        btnBrowseFolder.textContent = orig;
+      }
+    });
+  }
+
+  btnClearAll.addEventListener('click', () => {
+    selectedFiles = [];
+    generatedImages = [];
+    selectedResultIndices.clear();
+    selectionMode = false;
+    renderPreviews();
+    hideError();
+    resultsEl.classList.remove('visible');
+    resultsGrid.innerHTML = '';
+    btnDownloadAll.style.display = 'none';
+    document.getElementById('btn-select-toggle').style.display = 'none';
+    selectionToolbar.classList.remove('visible');
+    captionPanel.classList.remove('visible');
+  });
+
+  // ── Generate ──────────────────────────────────────────────────────────────
+  btnGenerate.addEventListener('click', async () => {
+    if (currentMode === 'batch') { openScanModalOrStart(); return; }
+
+    if (selectedFiles.length === 0 || selectedShots.length === 0) return;
+
+    hideError();
+    resultsEl.classList.remove('visible');
+    resultsGrid.innerHTML = '';
+    btnDownloadAll.style.display = 'none';
+    generatedImages = [];
+    setLoading(true);
+
+    // Show skeleton placeholders (#7)
+    resultsEl.classList.add('visible');
+    selectedShots.forEach(shotId => {
+      const shot = shotCatalog[shotId];
+      const skel = document.createElement('div');
+      skel.className = 'skeleton skeleton-card';
+      skel.id = 'skel-' + shotId;
+      skel.innerHTML = '<div class="skeleton-label skeleton"></div><div class="skeleton-img skeleton"></div><div class="skeleton-actions skeleton"></div>';
+      resultsGrid.appendChild(skel);
+    });
+
+    genState = { files: [...selectedFiles], customInstruction: customInput.value.trim() };
+
+    const genStartTime = Date.now();
+    const formData = new FormData();
+    selectedFiles.forEach(f => formData.append('images[]', f));
+    formData.append('shots', JSON.stringify([...selectedShots]));
+    formData.append('customInstruction', genState.customInstruction);
+    formData.append('provider', selectedProvider);
+    formData.append('autoMatchRing', autoMatchRingCheckbox.checked ? '1' : '0');
+    formData.append('multiPiece', multiPieceCheckbox.checked ? '1' : '0');
+
+    try {
+      const res  = await fetch('/generate', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (!res.ok || !data.success) { showError(data.error || 'Something went wrong.'); resultsGrid.innerHTML = ''; return; }
+      if (data.usage) updateCostBar(data.usage);
+
+      // Record gen time (#5)
+      const elapsed = (Date.now() - genStartTime) / 1000;
+      const perShot = elapsed / selectedShots.length;
+      recordGenTime(selectedProvider, perShot);
+
+      renderResults(data.results);
+
+      // Save to session history (#6)
+      (async () => {
+        const thumbs = [];
+        const shots = data.results?.shots || [];
+        for (let i = 0; i < Math.min(2, shots.length); i++) {
+          const tb = await resizeToThumbnail(shots[i].data, 80);
+          thumbs.push(tb);
+        }
+        saveHistory({ timestamp: Date.now(), provider: selectedProvider, shotCount: shots.length, thumbnails: thumbs });
+      })();
+    } catch (err) {
+      showError('Network error — is the server running?');
+      resultsGrid.innerHTML = '';
+    } finally {
+      setLoading(false);
+    }
+  });
+
+  // ── Render results ────────────────────────────────────────────────────────
+  function renderResults(results) {
+    resultsGrid.innerHTML = '';
+    generatedImages = [];
+    selectedResultIndices.clear();
+    selectionMode = false;
+    updateSelectionUI();
+
+    if (results.shots?.length) {
+      results.shots.forEach(({ id, label, category, data }, idx) => {
+        generatedImages.push({ name: `${id}.png`, b64: data });
+        const labelCls = LABEL_CLASS[category] || 'label-ecommerce';
+        const card = makeResultCard(
+          `data:image/png;base64,${data}`, label, labelCls, id, data,
+          (card, btn) => retryShot(id, card, btn),
+          idx
+        );
+        resultsGrid.appendChild(card);
+      });
+    }
+
+    if (generatedImages.length > 1) {
+      btnDownloadAll.style.display = '';
+      document.getElementById('btn-select-toggle').style.display = '';
+    }
+
+    resultsEl.classList.add('visible');
+    resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function makeResultCard(src, label, labelCls, key, b64, onRetry = null, cardIndex = 0) {
+    const card = document.createElement('div');
+    card.className = 'result-card';
+    card.dataset.cardIndex = cardIndex;
+
+    // Selection checkbox overlay
+    const selCheck = document.createElement('div');
+    selCheck.className = 'select-check';
+    selCheck.innerHTML = '<svg viewBox="0 0 14 14"><polyline points="2.5 7 5.5 10 11.5 4"></polyline></svg>';
+
+    const labelEl = document.createElement('div');
+    labelEl.className = `result-card-label ${labelCls}`;
+    labelEl.textContent = label;
+
+    const img = document.createElement('img');
+    img.src = src;
+    img.alt = label;
+
+    // Click on image area toggles selection when in selection mode
+    img.addEventListener('click', () => {
+      if (!selectionMode) return;
+      toggleCardSelection(card, cardIndex);
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'result-card-actions';
+
+    const dlBtn = document.createElement('button');
+    dlBtn.className = 'btn-dl';
+    dlBtn.dataset.b64 = b64;
+    dlBtn.dataset.label = key;
+    dlBtn.textContent = 'Download PNG';
+    dlBtn.addEventListener('click', () => {
+      const a = document.createElement('a');
+      a.href = `data:image/png;base64,${dlBtn.dataset.b64}`;
+      a.download = `hom_${dlBtn.dataset.label}.png`;
+      a.click();
+    });
+    actions.appendChild(dlBtn);
+
+    if (onRetry) {
+      const retryBtn = document.createElement('button');
+      retryBtn.className = 'btn-retry';
+      retryBtn.textContent = 'Retry';
+      retryBtn.addEventListener('click', () => onRetry(card, retryBtn));
+      actions.appendChild(retryBtn);
+    }
+
+    // Compare button (#3)
+    const compareBtn = document.createElement('button');
+    compareBtn.className = 'btn-compare';
+    compareBtn.textContent = 'Compare';
+    compareBtn.addEventListener('click', () => openCompare(src, label));
+    actions.appendChild(compareBtn);
+
+    card.append(selCheck, labelEl, img, actions);
+    return card;
+  }
+
+  // ── Retry ─────────────────────────────────────────────────────────────────
+  async function retryShot(shotId, card, retryBtn) {
+    if (!genState.files || genState.files.length === 0) return;
+
+    retryBtn.disabled = true;
+    retryBtn.textContent = 'Retrying...';
+    const img = card.querySelector('img');
+    img.style.opacity = '0.35';
+
+    const formData = new FormData();
+    genState.files.forEach(f => formData.append('images[]', f));
+    formData.append('angleId', shotId);
+    formData.append('customInstruction', genState.customInstruction);
+    formData.append('provider', selectedProvider);
+    formData.append('autoMatchRing', autoMatchRingCheckbox.checked ? '1' : '0');
+    formData.append('multiPiece', multiPieceCheckbox.checked ? '1' : '0');
+
+    try {
+      const res  = await fetch('/generate-angle', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Retry failed.');
+      if (data.usage) updateCostBar(data.usage);
+
+      img.src = `data:image/png;base64,${data.imageData}`;
+      card.querySelector('.btn-dl').dataset.b64 = data.imageData;
+
+      const idx = generatedImages.findIndex(i => i.name === `${shotId}.png`);
+      if (idx >= 0) generatedImages[idx].b64 = data.imageData;
+
+      retryBtn.textContent = 'Retry';
+    } catch (err) {
+      retryBtn.textContent = 'Failed';
+      setTimeout(() => { retryBtn.textContent = 'Retry'; }, 2500);
+    } finally {
+      retryBtn.disabled = false;
+      img.style.opacity = '';
+    }
+  }
+
+  // ── Download All ZIP ──────────────────────────────────────────────────────
+  btnDownloadAll.addEventListener('click', async () => {
+    try {
+      const res = await fetch('/download-zip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ images: generatedImages.map(i => ({ name: i.name, data: i.b64 })) }),
+      });
+      if (!res.ok) throw new Error('ZIP generation failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'house_of_mina_shots.zip';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      showError('Failed to download ZIP: ' + err.message);
+    }
+  });
+
+  // ── Progress helpers ──────────────────────────────────────────────────────
+  function setLoading(on) {
+    btnGenerate.disabled = on;
+    btnGenerate.classList.toggle('loading', on);
+    if (on) btnGenerate.textContent = 'Generating...';
+    else updateGenerateButton();
+    progressEl.classList.toggle('visible', on);
+
+    if (on) {
+      const steps = selectedShots.length + 1; // +1 for analysis
+      progressSteps.innerHTML = Array.from({ length: steps }, (_, i) =>
+        `<div class="step-dot" id="dot-${i}"></div>`
+      ).join('');
+      animateDots(steps);
+
+      // Time estimate (#5)
+      const avg = avgGenTime(selectedProvider);
+      const totalSec = Math.round(selectedShots.length * avg);
+      const estMin = (totalSec / 60).toFixed(1);
+      progressText.innerHTML = `<strong>Generating...</strong> Analyzing jewelry <span class="progress-estimate">~${estMin} min remaining</span>`;
+    }
+  }
+
+  let dotTimer = null;
+  function animateDots(total) {
+    let i = 0;
+    clearInterval(dotTimer);
+    dotTimer = setInterval(() => {
+      document.querySelectorAll('.step-dot').forEach((d, idx) => {
+        d.className = 'step-dot' + (idx < i ? ' done' : idx === i ? ' active' : '');
+      });
+      if (i < total) i++;
+      else clearInterval(dotTimer);
+    }, 20000 / total);
+  }
+
+  function showError(msg) { errorBox.textContent = msg; errorBox.classList.add('visible'); }
+  function hideError()    { errorBox.textContent = ''; errorBox.classList.remove('visible'); }
+
+  // ── Batch ─────────────────────────────────────────────────────────────────
+  const folderPathInput  = document.getElementById('folder-path');
+  const btnCancelBatch   = document.getElementById('btn-cancel-batch');
+  const btnResumeBatch   = document.getElementById('btn-resume-batch');
+  const batchLog         = document.getElementById('batch-log');
+  const logEntries       = document.getElementById('log-entries');
+  const batchResultsEl   = document.getElementById('batch-results');
+  const batchStatusEl    = document.getElementById('batch-status');
+  const statusProductEl  = document.getElementById('status-product');
+  const statusShotEl     = document.getElementById('status-shot');
+  const statusCountEl    = document.getElementById('status-count');
+  const batchFolderMap   = {};
+  const batchShotsMap    = {};
+  const lockedShots      = new Set(); // keys: `${productName}::${angleId}`
+
+  function lockKey(p, a) { return `${p}::${a}`; }
+  function isLocked(p, a) { return lockedShots.has(lockKey(p, a)); }
+  function setLock(p, a, on) {
+    const k = lockKey(p, a);
+    if (on) lockedShots.add(k); else lockedShots.delete(k);
+  }
+
+  let batchTotalShots = 0;
+  let batchDoneShots  = 0;
+
+  function setStatus(product, shot) {
+    statusProductEl.textContent = product || '';
+    statusShotEl.textContent    = shot    || '';
+    statusCountEl.textContent   = batchTotalShots ? `${batchDoneShots} / ${batchTotalShots} shots` : '';
+    batchStatusEl.classList.toggle('visible', !!(product || shot));
+  }
+
+  // Track last batch params for resume
+  let lastBatchParams = null;
+  let pendingSkipFolders = []; // subfolder names user unchecked before starting
+
+  // ═══ Pre-run folder scan modal ════════════════════════════════════════════
+  const scanModal      = document.getElementById('scan-modal');
+  const scanModalBody  = document.getElementById('scan-modal-body');
+  const scanModalClose = document.getElementById('scan-modal-close');
+  const scanModalCancel = document.getElementById('scan-modal-cancel');
+  const scanModalStart = document.getElementById('scan-modal-start');
+  const scanModalAll   = document.getElementById('scan-modal-all');
+  const scanModalNone  = document.getElementById('scan-modal-none');
+
+  async function openScanModalOrStart() {
+    const folderPath = folderPathInput.value.trim().replace(/^['"]|['"]$/g, '');
+    if (!folderPath || selectedShots.length === 0) return;
+
+    // Fetch subfolder list
+    scanModalBody.innerHTML = '<div class="scan-empty">Scanning…</div>';
+    scanModal.classList.add('visible');
+    scanModalStart.disabled = true;
+
+    try {
+      const res = await fetch(`/scan-folder?folderPath=${encodeURIComponent(folderPath)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Scan failed');
+      renderScanList(data.subfolders || []);
+    } catch (err) {
+      scanModalBody.innerHTML = `<div class="scan-empty">Failed to scan: ${err.message}</div>`;
+      scanModalStart.disabled = true;
+    }
+  }
+
+  function renderScanList(subfolders) {
+    scanModalBody.innerHTML = '';
+    if (subfolders.length === 0) {
+      scanModalBody.innerHTML = '<div class="scan-empty">No subfolders found in that path.</div>';
+      scanModalStart.disabled = true;
+      return;
+    }
+    const list = document.createElement('div');
+    list.className = 'scan-list';
+    subfolders.forEach(sf => {
+      const row = document.createElement('label');
+      row.className = 'scan-item';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = true;
+      cb.value = sf.name;
+      cb.addEventListener('change', () => {
+        row.classList.toggle('disabled', !cb.checked);
+        updateScanStartState();
+      });
+      const name = document.createElement('span');
+      name.className = 'scan-item-name';
+      name.textContent = sf.name;
+      const count = document.createElement('span');
+      count.className = 'scan-item-count';
+      count.textContent = `${sf.imageCount} image${sf.imageCount === 1 ? '' : 's'}`;
+      row.append(cb, name, count);
+      list.appendChild(row);
+    });
+    scanModalBody.appendChild(list);
+    updateScanStartState();
+  }
+
+  function getScanCheckboxes() {
+    return [...scanModalBody.querySelectorAll('input[type="checkbox"]')];
+  }
+
+  function updateScanStartState() {
+    const checked = getScanCheckboxes().filter(cb => cb.checked).length;
+    scanModalStart.disabled = checked === 0;
+    scanModalStart.textContent = checked === 0 ? 'Start batch' : `Start batch (${checked})`;
+  }
+
+  scanModalAll.addEventListener('click', () => {
+    getScanCheckboxes().forEach(cb => {
+      cb.checked = true;
+      cb.closest('.scan-item')?.classList.remove('disabled');
+    });
+    updateScanStartState();
+  });
+  scanModalNone.addEventListener('click', () => {
+    getScanCheckboxes().forEach(cb => {
+      cb.checked = false;
+      cb.closest('.scan-item')?.classList.add('disabled');
+    });
+    updateScanStartState();
+  });
+  scanModalClose.addEventListener('click', () => scanModal.classList.remove('visible'));
+  scanModalCancel.addEventListener('click', () => scanModal.classList.remove('visible'));
+  scanModal.addEventListener('click', (e) => {
+    if (e.target === scanModal) scanModal.classList.remove('visible');
+  });
+  scanModalStart.addEventListener('click', () => {
+    const boxes = getScanCheckboxes();
+    pendingSkipFolders = boxes.filter(cb => !cb.checked).map(cb => cb.value);
+    scanModal.classList.remove('visible');
+    startBatch(false);
+  });
+
+  btnCancelBatch.addEventListener('click', async () => {
+    btnCancelBatch.textContent = 'Cancelling...';
+    btnCancelBatch.disabled = true;
+    try { await fetch('/batch/cancel', { method: 'POST' }); } catch (e) {}
+    addLog('Cancel requested — aborting all in-flight calls...', 'err');
+  });
+
+  btnResumeBatch.addEventListener('click', () => {
+    if (!lastBatchParams) return;
+    startBatch(true);
+  });
+
+  function startBatch(isResume = false) {
+    const folderPath        = folderPathInput.value.trim().replace(/^['"]|['"]$/g, '');
+    const customInstruction = customInput.value.trim();
+    if (!folderPath || selectedShots.length === 0) return;
+
+    // Record folder in recents
+    if (!isResume && typeof pushRecentFolder === 'function') pushRecentFolder(folderPath);
+
+    // Save batch params for resume (include current skip list)
+    lastBatchParams = { folderPath, customInstruction, shots: [...selectedShots], provider: selectedProvider, skipFolders: [...pendingSkipFolders] };
+
+    if (!isResume) {
+      logEntries.innerHTML = '';
+      batchResultsEl.innerHTML = '';
+      batchResultsEl.classList.remove('visible');
+      Object.keys(batchFolderMap).forEach(k => delete batchFolderMap[k]);
+      Object.keys(batchShotsMap).forEach(k => delete batchShotsMap[k]);
+    } else {
+      addLog('\n── Resuming batch... ──', 'info');
+    }
+
+    batchLog.classList.add('visible');
+    btnGenerate.disabled = true;
+    btnGenerate.textContent = isResume ? 'Resuming...' : 'Processing...';
+    btnCancelBatch.classList.add('visible');
+    btnCancelBatch.disabled = false;
+    btnCancelBatch.textContent = 'Cancel Batch';
+    btnResumeBatch.classList.remove('visible');
+
+    let batchFinished = false;
+    const shotsParam = encodeURIComponent(JSON.stringify([...selectedShots]));
+    let url = `/batch?folderPath=${encodeURIComponent(folderPath)}&shots=${shotsParam}&provider=${encodeURIComponent(selectedProvider)}&brand=${encodeURIComponent(getBrand())}`;
+    if (customInstruction) url += `&customInstruction=${encodeURIComponent(customInstruction)}`;
+    if (autoMatchRingCheckbox.checked) url += '&autoMatchRing=1';
+    if (multiPieceCheckbox.checked) url += '&multiPiece=1';
+    if (isResume) url += '&resume=1';
+    if (pendingSkipFolders.length > 0) url += `&skipFolders=${encodeURIComponent(JSON.stringify(pendingSkipFolders))}`;
+    const src = new EventSource(url);
+
+    src.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+
+      if (msg.type === 'start') {
+        batchTotalShots = (msg.total || 0) * (msg.shots?.length || 0);
+        batchDoneShots  = 0;
+        addLog(`Processing ${msg.total} product(s), ${msg.shots?.length || 0} shot(s) each...`, 'info');
+
+      } else if (msg.type === 'product_start') {
+        addLog(`\n${msg.product}`, 'title');
+        addBatchProductSection(msg.product, msg.productFolder);
+        setStatus(msg.product, 'Starting...');
+
+      } else if (msg.type === 'product_error') {
+        addLog(`  \u2717 ${msg.message}`, 'err');
+
+      } else if (msg.type === 'angle_skipped') {
+        addLog(`  \u21BB ${msg.label} (already done)`, 'ok');
+        renderBatchAngleCard(msg.product, msg.angle, msg.label, msg.savedTo);
+
+      } else if (msg.type === 'angle_start') {
+        addLog(`  ${msg.label}...`);
+        activateBatchPlaceholder(msg.product, msg.angle);
+        setStatus(msg.product, msg.label);
+
+      } else if (msg.type === 'angle_done') {
+        batchDoneShots++;
+        addLog(`  \u2713 ${msg.label}`, 'ok');
+        renderBatchAngleCard(msg.product, msg.angle, msg.label, msg.savedTo);
+        setStatus(msg.product, `\u2713 ${msg.label}`);
+
+      } else if (msg.type === 'angle_error') {
+        batchDoneShots++;
+        addLog(`  \u2717 ${msg.angle}: ${msg.message}`, 'err');
+        markBatchAngleFailed(msg.product, msg.angle);
+
+      } else if (msg.type === 'usage') {
+        updateCostBar(msg.usage);
+
+      } else if (msg.type === 'product_done') {
+        addLog(msg.skipped ? `  Skipped (complete)` : `  Done`, 'ok');
+        // Hide Skip button on normal completion
+        const sec = findProductSection(msg.product);
+        if (sec && sec._skipBtn) sec._skipBtn.style.display = 'none';
+
+      } else if (msg.type === 'product_skipped') {
+        addLog(`  \u2298 Skipped: ${msg.reason || 'user'}`, 'err');
+        const sec = findProductSection(msg.product);
+        if (sec) {
+          sec.classList.add('skipped');
+          // Mark any queued placeholders as skipped (remove spinners)
+          sec.querySelectorAll('.batch-angle-pending.queued').forEach(ph => {
+            ph.classList.remove('queued');
+            const spn = ph.querySelector('.mini-spinner');
+            if (spn) spn.remove();
+            const lbl = ph.querySelector('span');
+            if (lbl) lbl.textContent = `${lbl.textContent} (skipped)`;
+          });
+          if (sec._skipBtn) {
+            sec._skipBtn.disabled = true;
+            sec._skipBtn.textContent = 'Skipped';
+          }
+        }
+
+      } else if (msg.type === 'cancelled') {
+        addLog(`\n${msg.message}`, 'err');
+        setStatus('', '');
+        batchFinished = true;
+        finishBatch(src, false);
+
+      } else if (msg.type === 'error') {
+        addLog(`Error: ${msg.message}`, 'err');
+        setStatus('', '');
+        batchFinished = true;
+        finishBatch(src, false);
+
+      } else if (msg.type === 'done') {
+        addLog('\nBatch complete!', 'ok');
+        setStatus('', '');
+        batchFinished = true;
+        finishBatch(src, true);
+      }
+    };
+
+    let reconnectAttempts = 0;
+    const MAX_RECONNECTS = 3;
+
+    src.onerror = () => {
+      if (batchFinished) return;
+      reconnectAttempts++;
+      if (reconnectAttempts <= MAX_RECONNECTS) {
+        addLog(`Connection interrupted — reconnecting (attempt ${reconnectAttempts}/${MAX_RECONNECTS})...`, 'err');
+        // EventSource auto-reconnects; we just track attempts
+      } else {
+        addLog('Connection lost after multiple attempts — click Resume to continue.', 'err');
+        finishBatch(src, false);
+      }
+    };
+
+    // Reset reconnect counter on successful messages
+    const origOnMessage = src.onmessage;
+    src.onmessage = (e) => {
+      reconnectAttempts = 0;
+      origOnMessage(e);
+    };
+  }
+
+  function cardId(productName, angleId) {
+    return `bcard-${productName.replace(/[^a-zA-Z0-9]/g, '_')}-${angleId}`;
+  }
+
+  function addBatchProductSection(productName, productFolder) {
+    batchFolderMap[productName] = productFolder || '';
+    const productShots = [...selectedShots].filter(id => shotCatalog[id]);
+    batchShotsMap[productName] = productShots;
+    batchResultsEl.classList.add('visible');
+
+    const section = document.createElement('div');
+    section.className = 'batch-product-section';
+
+    const titleEl = document.createElement('div');
+    titleEl.className = 'batch-product-title';
+
+    const titleText = document.createElement('span');
+    titleText.textContent = productName;
+
+    const retryAllBtn = document.createElement('button');
+    retryAllBtn.className = 'btn-retry btn-retry-product';
+    retryAllBtn.textContent = 'Retry all';
+    retryAllBtn.addEventListener('click', () => retryEntireProduct(productName, retryAllBtn, null));
+
+    const fixAllBtn = document.createElement('button');
+    fixAllBtn.className = 'btn-retry btn-retry-product';
+    fixAllBtn.textContent = 'Fix with feedback...';
+    fixAllBtn.addEventListener('click', () => {
+      const fb = window.prompt(`What's wrong with ${productName}? (applies to ALL shots for this product)`);
+      if (fb && fb.trim()) retryEntireProduct(productName, fixAllBtn, fb.trim());
+    });
+
+    const dlFolderBtn = document.createElement('button');
+    dlFolderBtn.className = 'btn-retry btn-retry-product';
+    dlFolderBtn.textContent = 'Download folder';
+    dlFolderBtn.addEventListener('click', () => downloadProductFolder(productName, dlFolderBtn));
+
+    const skipBtn = document.createElement('button');
+    skipBtn.className = 'btn-retry btn-retry-product btn-skip-product';
+    skipBtn.textContent = 'Skip';
+    skipBtn.title = 'Stop generating remaining shots for this product';
+    skipBtn.addEventListener('click', async () => {
+      if (!confirm(`Skip the rest of ${productName}? Any in-flight shots will still finish, but no new shots will start.`)) return;
+      skipBtn.disabled = true;
+      skipBtn.textContent = 'Skipping…';
+      try {
+        const res = await fetch('/batch/skip-product', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ product: productName }),
+        });
+        const data = await res.json();
+        if (!data.skipped) {
+          skipBtn.disabled = false;
+          skipBtn.textContent = 'Skip';
+          addLog(`Could not skip ${productName}: ${data.message || 'no active batch'}`, 'err');
+        }
+      } catch (err) {
+        skipBtn.disabled = false;
+        skipBtn.textContent = 'Skip';
+        addLog(`Skip request failed: ${err.message}`, 'err');
+      }
+    });
+    section.dataset.product = productName;
+    section._skipBtn = skipBtn;
+
+    const compareAllBtn = document.createElement('button');
+    compareAllBtn.className = 'btn-retry btn-retry-product';
+    compareAllBtn.textContent = 'Compare all';
+    compareAllBtn.title = 'Side-by-side: reference vs every generated shot for this product';
+    compareAllBtn.addEventListener('click', () => openCompareAll(productName));
+
+    titleEl.append(titleText, retryAllBtn, fixAllBtn, dlFolderBtn, compareAllBtn, skipBtn);
+
+    const grid = document.createElement('div');
+    grid.className = 'batch-angles-grid';
+
+    productShots.forEach(shotId => {
+      const shot = shotCatalog[shotId];
+      if (!shot) return;
+      const ph = document.createElement('div');
+      ph.className = 'batch-angle-pending queued';
+      ph.id = cardId(productName, shotId);
+      const spinner = document.createElement('div');
+      spinner.className = 'mini-spinner';
+      const lbl = document.createElement('span');
+      lbl.textContent = shot.label;
+      ph.append(spinner, lbl);
+      grid.appendChild(ph);
+    });
+
+    section.append(titleEl, grid);
+    batchResultsEl.appendChild(section);
+    batchResultsEl.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }
+
+  function findProductSection(productName) {
+    return [...document.querySelectorAll('.batch-product-section')].find(
+      s => s.dataset.product === productName
+    );
+  }
+
+  function activateBatchPlaceholder(productName, angleId) {
+    const el = document.getElementById(cardId(productName, angleId));
+    if (el) el.classList.remove('queued');
+  }
+
+  function renderBatchAngleCard(productName, angleId, label, savedTo) {
+    const placeholder = document.getElementById(cardId(productName, angleId));
+    if (!placeholder) return;
+
+    const productFolder = batchFolderMap[productName] || '';
+    const shot = shotCatalog[angleId];
+    const labelCls = shot ? (LABEL_CLASS[shot.category] || 'label-ecommerce') : 'label-ecommerce';
+
+    const card = document.createElement('div');
+    card.className = 'result-card';
+    card.id = cardId(productName, angleId);
+
+    const labelEl = document.createElement('div');
+    labelEl.className = `result-card-label ${labelCls}`;
+    labelEl.textContent = label;
+
+    const img = document.createElement('img');
+    img.src = savedTo ? `/file?path=${encodeURIComponent(savedTo)}` : '';
+    img.alt = label;
+
+    const actions = document.createElement('div');
+    actions.className = 'result-card-actions';
+
+    const dlBtn = document.createElement('button');
+    dlBtn.className = 'btn-dl';
+    dlBtn.textContent = 'Download';
+    dlBtn.addEventListener('click', () => {
+      const a = document.createElement('a');
+      a.href = img.src;
+      a.download = `${productName}_${angleId}.png`;
+      a.click();
+    });
+
+    async function doSingleRetry(btn, feedback) {
+      const origLabel = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = feedback ? 'Fixing...' : 'Retrying...';
+      img.style.opacity = '0.35';
+      try {
+        const res = await fetch('/retry-angle', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productFolder, angleId, provider: selectedProvider, feedback: feedback || '', autoMatchRing: autoMatchRingCheckbox.checked ? '1' : '0', multiPiece: multiPieceCheckbox.checked ? '1' : '0' }),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Retry failed.');
+        if (data.usage) updateCostBar(data.usage);
+        img.src = `data:image/png;base64,${data.base64}`;
+        btn.textContent = origLabel;
+      } catch (err) {
+        btn.textContent = 'Failed';
+        setTimeout(() => { btn.textContent = origLabel; }, 2500);
+      } finally {
+        btn.disabled = false;
+        img.style.opacity = '';
+      }
+    }
+
+    const retryBtn = document.createElement('button');
+    retryBtn.className = 'btn-retry';
+    retryBtn.textContent = 'Retry';
+    retryBtn.addEventListener('click', () => doSingleRetry(retryBtn, null));
+
+    const fixBtn = document.createElement('button');
+    fixBtn.className = 'btn-retry';
+    fixBtn.textContent = 'Fix...';
+    fixBtn.title = 'Retry with a specific correction';
+    fixBtn.addEventListener('click', () => {
+      const fb = window.prompt(`What's wrong with ${label}? Describe what to fix:`);
+      if (fb && fb.trim()) doSingleRetry(fixBtn, fb.trim());
+    });
+
+    const lockBtn = document.createElement('button');
+    lockBtn.className = 'btn-retry btn-lock';
+    const renderLock = () => {
+      const on = isLocked(productName, angleId);
+      lockBtn.textContent = on ? '🔒 Locked' : '🔓 Lock';
+      lockBtn.title = on
+        ? 'This shot is locked — Retry all / Fix all will skip it'
+        : 'Lock this shot so bulk retries skip it';
+      card.classList.toggle('locked', on);
+    };
+    lockBtn.addEventListener('click', () => {
+      setLock(productName, angleId, !isLocked(productName, angleId));
+      renderLock();
+    });
+    renderLock();
+
+    const promptBtn = document.createElement('button');
+    promptBtn.className = 'btn-retry';
+    promptBtn.textContent = 'ℹ️ Prompt';
+    promptBtn.title = 'Inspect the exact prompt that was sent for this shot';
+    promptBtn.addEventListener('click', () => openPromptInspector(angleId, label));
+
+    const compareBtn = document.createElement('button');
+    compareBtn.className = 'btn-compare';
+    compareBtn.textContent = 'Compare';
+    compareBtn.title = 'Side-by-side: original reference vs this generated shot';
+    compareBtn.addEventListener('click', async () => {
+      let refSrc = '';
+      try {
+        const r = await fetch('/product/reference?folder=' + encodeURIComponent(productFolder));
+        const d = await r.json();
+        if (d.path) refSrc = '/file?path=' + encodeURIComponent(d.path);
+      } catch (e) {}
+      openCompareSrc(refSrc, img.src, `${productName} — ${label}`);
+    });
+
+    actions.append(dlBtn, retryBtn, fixBtn, lockBtn, promptBtn, compareBtn);
+    card.append(labelEl, img, actions);
+    placeholder.replaceWith(card);
+  }
+
+  async function retryEntireProduct(productName, triggerBtn, feedback = null) {
+    const productFolder = batchFolderMap[productName];
+    const shotIds       = batchShotsMap[productName] || [];
+    if (!productFolder || shotIds.length === 0) return;
+
+    triggerBtn.disabled = true;
+    const origLabel = triggerBtn.textContent;
+    triggerBtn.textContent = feedback ? 'Fixing...' : 'Retrying...';
+
+    const activeShotIds = shotIds.filter(id => !isLocked(productName, id));
+    const skippedCount  = shotIds.length - activeShotIds.length;
+    if (activeShotIds.length === 0) {
+      triggerBtn.disabled = false;
+      triggerBtn.textContent = origLabel;
+      setStatus(productName, `All shots are locked — nothing to retry`);
+      setTimeout(() => setStatus('', ''), 2200);
+      return;
+    }
+
+    let failed = 0;
+    for (let i = 0; i < activeShotIds.length; i++) {
+      const angleId = activeShotIds[i];
+      const shot    = shotCatalog[angleId];
+      const label   = shot ? shot.label : angleId;
+
+      const skippedNote = skippedCount > 0 ? ` • ${skippedCount} locked` : '';
+      setStatus(productName, `${feedback ? 'Fixing' : 'Retrying'} ${label} (${i + 1}/${activeShotIds.length})${skippedNote}`);
+
+      // Mark the card as in-progress (dim it if it's a result-card, reset spinner if it's a failed placeholder)
+      const existing = document.getElementById(cardId(productName, angleId));
+      const existingImg = existing ? existing.querySelector('img') : null;
+      if (existingImg) existingImg.style.opacity = '0.35';
+      if (existing && existing.classList.contains('batch-angle-pending')) {
+        existing.classList.remove('queued');
+        const sp = existing.querySelector('.mini-spinner');
+        if (sp) sp.style.borderTopColor = '';
+        const lb = existing.querySelector('span');
+        if (lb) { lb.style.color = ''; lb.textContent = label; }
+      }
+
+      try {
+        const res = await fetch('/retry-angle', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productFolder, angleId, provider: selectedProvider, feedback: feedback || '', autoMatchRing: autoMatchRingCheckbox.checked ? '1' : '0', multiPiece: multiPieceCheckbox.checked ? '1' : '0' }),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Retry failed');
+        if (data.usage) updateCostBar(data.usage);
+
+        if (existingImg) {
+          existingImg.src = `data:image/png;base64,${data.base64}`;
+          existingImg.style.opacity = '';
+        } else {
+          // No result-card yet (was a failed placeholder) — render one.
+          renderBatchAngleCard(productName, angleId, label, null);
+          const newImg = document.querySelector(`#${CSS.escape(cardId(productName, angleId))} img`);
+          if (newImg) newImg.src = `data:image/png;base64,${data.base64}`;
+        }
+      } catch (err) {
+        failed++;
+        if (existingImg) existingImg.style.opacity = '';
+        markBatchAngleFailed(productName, angleId);
+        addLog(`  ✗ retry ${productName}/${angleId}: ${err.message}`, 'err');
+      }
+    }
+
+    setStatus('', '');
+    triggerBtn.disabled = false;
+    triggerBtn.textContent = failed === 0 ? origLabel : `${failed} failed — retry again`;
+    if (failed > 0) setTimeout(() => { triggerBtn.textContent = origLabel; }, 4000);
+  }
+
+  async function downloadProductFolder(productName, triggerBtn) {
+    const shotIds = batchShotsMap[productName] || [];
+    if (shotIds.length === 0) return;
+
+    triggerBtn.disabled = true;
+    const origLabel = triggerBtn.textContent;
+    triggerBtn.textContent = 'Packing...';
+
+    try {
+      const images = [];
+      for (const angleId of shotIds) {
+        const card = document.getElementById(cardId(productName, angleId));
+        const im   = card ? card.querySelector('img') : null;
+        if (!im || !im.src) continue;
+        const resp = await fetch(im.src);
+        if (!resp.ok) continue;
+        const blob = await resp.blob();
+        const b64  = await new Promise((resolve, reject) => {
+          const r = new FileReader();
+          r.onload = () => {
+            const s = String(r.result || '');
+            resolve(s.includes(',') ? s.split(',')[1] : s);
+          };
+          r.onerror = reject;
+          r.readAsDataURL(blob);
+        });
+        images.push({ name: `${productName}_${angleId}.png`, data: b64 });
+      }
+
+      if (images.length === 0) throw new Error('No images ready for this product');
+
+      const res = await fetch('/download-zip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ images }),
+      });
+      if (!res.ok) throw new Error('ZIP generation failed');
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `${productName.replace(/[^\w\-]+/g, '_')}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+      triggerBtn.textContent = origLabel;
+    } catch (err) {
+      triggerBtn.textContent = 'Failed';
+      setTimeout(() => { triggerBtn.textContent = origLabel; }, 2500);
+    } finally {
+      triggerBtn.disabled = false;
+    }
+  }
+
+  function markBatchAngleFailed(productName, angleId) {
+    const el = document.getElementById(cardId(productName, angleId));
+    if (!el) return;
+    el.classList.add('queued');
+    const spinner = el.querySelector('.mini-spinner');
+    if (spinner) spinner.style.borderTopColor = 'var(--danger)';
+    const lbl = el.querySelector('span');
+    if (lbl) { lbl.style.color = 'var(--danger)'; lbl.textContent = 'Failed'; }
+  }
+
+  function addLog(text, cls = '') {
+    const d = document.createElement('div');
+    d.className = `log-line ${cls}`;
+    d.textContent = text;
+    logEntries.appendChild(d);
+    logEntries.parentElement.scrollTop = 9999;
+  }
+
+  function finishBatch(src, completed = false) {
+    src.close();
+    btnGenerate.disabled = false;
+    updateGenerateButton();
+    btnCancelBatch.classList.remove('visible');
+
+    // Show Resume button if batch didn't complete successfully
+    if (!completed && lastBatchParams && currentMode === 'batch') {
+      btnResumeBatch.classList.add('visible');
+    } else {
+      btnResumeBatch.classList.remove('visible');
+    }
+  }
+
+  // ── Cost tracker ───────────────────────────────────────────────────────────
+  const PROVIDER_COLORS = { gemini: 'gemini', openai: 'openai', nanobana2: 'nanobana2' };
+  const PROVIDER_LABELS = { gemini: 'Gemini', openai: 'OpenAI', nanobana2: 'NB2' };
+
+  function updateCostBar(usage) {
+    if (!usage || !usage.session) return;
+    const s = usage.session;
+
+    // Total
+    document.getElementById('cost-total-value').textContent = `$${s.total.cost.toFixed(3)}`;
+    document.getElementById('cost-total-images').textContent = `${s.total.images} img${s.total.images !== 1 ? 's' : ''}`;
+
+    // Per provider
+    for (const prov of ['gemini', 'openai', 'nanobana2']) {
+      const el = document.getElementById(`cost-${prov}`);
+      if (!el) continue;
+      const data = s[prov] || { images: 0, cost: 0 };
+      el.querySelector('.cost-value').textContent = `$${data.cost.toFixed(3)}`;
+      el.querySelector('.cost-images').textContent = `${data.images}`;
+    }
+  }
+
+  async function refreshUsage() {
+    try {
+      const res = await fetch('/usage');
+      const data = await res.json();
+      updateCostBar(data);
+    } catch (e) {}
+  }
+
+  document.getElementById('cost-reset-btn').addEventListener('click', async () => {
+    await fetch('/usage/reset', { method: 'POST' });
+    refreshUsage();
+  });
+
+  // Poll usage every 5s during idle, and update on every response
+  setInterval(refreshUsage, 5000);
+  refreshUsage();
+
+  // Patch existing handlers to also update cost bar from responses
+  const _origRenderResults = renderResults;
+  // We hook into fetch responses instead — see generate handler
+
+  // ── Image selection & export ──────────────────────────────────────────────
+  const btnSelectToggle   = document.getElementById('btn-select-toggle');
+  const selectionToolbar  = document.getElementById('selection-toolbar');
+  const selCountEl        = document.getElementById('sel-count');
+  const btnSelectAll      = document.getElementById('btn-select-all');
+  const btnSelExport      = document.getElementById('btn-sel-export');
+  const btnSelCaption     = document.getElementById('btn-sel-caption');
+  const captionPanel      = document.getElementById('caption-panel');
+  const captionOutput     = document.getElementById('caption-output');
+  const btnGenerateCaption = document.getElementById('btn-generate-caption');
+  const btnCopyCaption    = document.getElementById('btn-copy-caption');
+  const btnCloseCaption   = document.getElementById('btn-close-caption');
+  const captionProductName = document.getElementById('caption-product-name');
+  const captionExtra      = document.getElementById('caption-extra');
+
+  btnSelectToggle.addEventListener('click', () => {
+    selectionMode = !selectionMode;
+    if (!selectionMode) selectedResultIndices.clear();
+    updateSelectionUI();
+  });
+
+  function toggleCardSelection(card, index) {
+    if (selectedResultIndices.has(index)) {
+      selectedResultIndices.delete(index);
+      card.classList.remove('selected');
+    } else {
+      selectedResultIndices.add(index);
+      card.classList.add('selected');
+    }
+    updateSelectionUI();
+  }
+
+  function updateSelectionUI() {
+    btnSelectToggle.textContent = selectionMode ? 'Done Selecting' : 'Select Images';
+
+    // Toggle selectable class on all cards
+    document.querySelectorAll('#results-grid .result-card').forEach(c => {
+      c.classList.toggle('selectable', selectionMode);
+      if (!selectionMode) c.classList.remove('selected');
+    });
+
+    selectionToolbar.classList.toggle('visible', selectionMode);
+    selCountEl.textContent = `${selectedResultIndices.size} selected`;
+
+    const allSelected = generatedImages.length > 0 && selectedResultIndices.size === generatedImages.length;
+    btnSelectAll.textContent = allSelected ? 'Deselect All' : 'Select All';
+  }
+
+  btnSelectAll.addEventListener('click', () => {
+    const allSelected = selectedResultIndices.size === generatedImages.length;
+    if (allSelected) {
+      selectedResultIndices.clear();
+      document.querySelectorAll('#results-grid .result-card').forEach(c => c.classList.remove('selected'));
+    } else {
+      generatedImages.forEach((_, i) => selectedResultIndices.add(i));
+      document.querySelectorAll('#results-grid .result-card').forEach(c => c.classList.add('selected'));
+    }
+    updateSelectionUI();
+  });
+
+  // Export selected as ZIP
+  btnSelExport.addEventListener('click', async () => {
+    if (selectedResultIndices.size === 0) return;
+    const selected = [...selectedResultIndices].map(i => generatedImages[i]).filter(Boolean);
+    try {
+      const res = await fetch('/download-zip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ images: selected.map(i => ({ name: i.name, data: i.b64 })) }),
+      });
+      if (!res.ok) throw new Error('ZIP generation failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'house_of_mina_selected.zip';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      showError('Failed to export: ' + err.message);
+    }
+  });
+
+  // Open caption panel
+  btnSelCaption.addEventListener('click', () => {
+    captionPanel.classList.add('visible');
+    captionPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
+
+  btnCloseCaption.addEventListener('click', () => {
+    captionPanel.classList.remove('visible');
+  });
+
+  // Generate WhatsApp caption
+  btnGenerateCaption.addEventListener('click', async () => {
+    const selected = [...selectedResultIndices].map(i => generatedImages[i]).filter(Boolean);
+    if (selected.length === 0) {
+      captionOutput.className = 'caption-output empty';
+      captionOutput.textContent = 'Please select at least one image first';
+      return;
+    }
+
+    btnGenerateCaption.disabled = true;
+    btnGenerateCaption.textContent = 'Generating...';
+    captionOutput.className = 'caption-output empty';
+    captionOutput.textContent = 'Writing your WhatsApp caption...';
+
+    try {
+      // Send first selected image as base64 (limit to 2 to keep request reasonable)
+      const imagesToSend = selected.slice(0, 2);
+
+      const formData = new FormData();
+      formData.append('productName', captionProductName.value.trim() || 'this piece');
+      formData.append('extraContext', captionExtra.value.trim());
+
+      // Convert base64 images to blobs and attach
+      for (let i = 0; i < imagesToSend.length; i++) {
+        const byteString = atob(imagesToSend[i].b64);
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let j = 0; j < byteString.length; j++) ia[j] = byteString.charCodeAt(j);
+        const blob = new Blob([ab], { type: 'image/png' });
+        formData.append('images[]', blob, imagesToSend[i].name);
+      }
+
+      const res = await fetch('/generate-caption', { method: 'POST', body: formData });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        captionOutput.className = 'caption-output empty';
+        captionOutput.textContent = data.error || 'Caption generation failed.';
+        return;
+      }
+
+      captionOutput.className = 'caption-output';
+      captionOutput.textContent = data.caption;
+      btnCopyCaption.style.display = '';
+    } catch (err) {
+      captionOutput.className = 'caption-output empty';
+      captionOutput.textContent = 'Error: ' + err.message;
+    } finally {
+      btnGenerateCaption.disabled = false;
+      btnGenerateCaption.textContent = 'Generate Caption';
+    }
+  });
+
+  // Copy caption to clipboard
+  btnCopyCaption.addEventListener('click', async () => {
+    const text = captionOutput.textContent;
+    if (!text || captionOutput.classList.contains('empty')) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      btnCopyCaption.textContent = 'Copied!';
+      btnCopyCaption.classList.add('copied');
+      setTimeout(() => {
+        btnCopyCaption.textContent = 'Copy to Clipboard';
+        btnCopyCaption.classList.remove('copied');
+      }, 2000);
+    } catch (e) {
+      // Fallback
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      btnCopyCaption.textContent = 'Copied!';
+      btnCopyCaption.classList.add('copied');
+      setTimeout(() => {
+        btnCopyCaption.textContent = 'Copy to Clipboard';
+        btnCopyCaption.classList.remove('copied');
+      }, 2000);
+    }
+  });
+
+  // ═══ Prompt inspector modal ═══════════════════════════════════════════════
+  const promptModal     = document.getElementById('prompt-modal');
+  const promptModalTitle = document.getElementById('prompt-modal-title');
+  const promptModalBody = document.getElementById('prompt-modal-body');
+  const promptModalClose = document.getElementById('prompt-modal-close');
+  const promptModalCopy  = document.getElementById('prompt-modal-copy');
+
+  async function openPromptInspector(shotId, label) {
+    promptModalTitle.textContent = `Prompt — ${label}`;
+    promptModalBody.textContent  = 'Loading…';
+    promptModal.classList.add('visible');
+    try {
+      const res = await fetch('/prompt-preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shotId,
+          customInstruction: customInput.value.trim(),
+          hasAnchor: true, // batch-result cards were all generated with the anchor reference
+          autoMatchRing: autoMatchRingCheckbox.checked ? '1' : '0',
+          multiPiece: multiPieceCheckbox.checked ? '1' : '0',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Preview failed');
+      promptModalBody.textContent = data.prompt;
+    } catch (err) {
+      promptModalBody.textContent = 'Failed to load prompt: ' + err.message;
+    }
+  }
+
+  promptModalClose.addEventListener('click', () => promptModal.classList.remove('visible'));
+  promptModal.addEventListener('click', (e) => {
+    if (e.target === promptModal) promptModal.classList.remove('visible');
+  });
+  promptModalCopy.addEventListener('click', () => {
+    navigator.clipboard.writeText(promptModalBody.textContent || '').then(() => {
+      promptModalCopy.textContent = 'Copied ✓';
+      setTimeout(() => { promptModalCopy.textContent = 'Copy prompt'; }, 1500);
+    });
+  });
+
+  // ═══ Recent folders (localStorage) ════════════════════════════════════════
+  const RECENT_FOLDERS_KEY = 'hom.recentFolders';
+  const MAX_RECENT = 8;
+
+  function getRecentFolders() {
+    try { return JSON.parse(localStorage.getItem(RECENT_FOLDERS_KEY) || '[]'); }
+    catch { return []; }
+  }
+  function pushRecentFolder(p) {
+    if (!p) return;
+    const list = getRecentFolders().filter(x => x !== p);
+    list.unshift(p);
+    if (list.length > MAX_RECENT) list.length = MAX_RECENT;
+    localStorage.setItem(RECENT_FOLDERS_KEY, JSON.stringify(list));
+  }
+
+  const recentBtn   = document.getElementById('btn-recent-folders');
+  const recentMenu  = document.getElementById('recent-folders-menu');
+
+  function renderRecentMenu() {
+    const list = getRecentFolders();
+    recentMenu.innerHTML = '';
+    if (list.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'recent-empty';
+      empty.textContent = 'No recent folders yet';
+      recentMenu.appendChild(empty);
+      return;
+    }
+    list.forEach(p => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = p;
+      b.title = p;
+      b.addEventListener('click', () => {
+        folderPathInput.value = p;
+        folderPathInput.dispatchEvent(new Event('input', { bubbles: true }));
+        recentMenu.classList.remove('visible');
+      });
+      recentMenu.appendChild(b);
+    });
+  }
+
+  if (recentBtn && recentMenu) {
+    recentBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      renderRecentMenu();
+      recentMenu.classList.toggle('visible');
+    });
+    document.addEventListener('click', (e) => {
+      if (!recentMenu.contains(e.target) && e.target !== recentBtn) {
+        recentMenu.classList.remove('visible');
+      }
+    });
+  }
+
+  // Also record when user picks via Browse
+  if (btnBrowseFolder) {
+    btnBrowseFolder.addEventListener('click', () => {
+      // Defer to let the original handler set the value first
+      setTimeout(() => {
+        const v = folderPathInput.value.trim();
+        if (v) pushRecentFolder(v);
+      }, 100);
+    });
+  }
+
+  // ═══ Keyboard shortcuts ═══════════════════════════════════════════════════
+  document.addEventListener('keydown', (e) => {
+    // Don't intercept when user is typing in an input/textarea
+    const tag = (e.target && e.target.tagName) || '';
+    const typing = tag === 'INPUT' || tag === 'TEXTAREA' || e.target?.isContentEditable;
+
+    // Cmd/Ctrl+Enter → Generate / Process Batch
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault();
+      if (!btnGenerate.disabled) btnGenerate.click();
+      return;
+    }
+
+    // Esc → close modals / menus
+    if (e.key === 'Escape') {
+      promptModal.classList.remove('visible');
+      scanModal.classList.remove('visible');
+      if (recentMenu) recentMenu.classList.remove('visible');
+      const cmpOverlay = document.getElementById('compare-overlay');
+      if (cmpOverlay) cmpOverlay.style.display = 'none';
+      return;
+    }
+
+    if (typing) return;
+
+    // Card-focused shortcuts — if a result-card is hovered, apply to it
+    const hovered = document.querySelector('.result-card:hover');
+    if (!hovered) return;
+    const retryOnCard  = hovered.querySelector('.btn-retry:not(.btn-lock):not([data-fix])');
+    const dlOnCard     = hovered.querySelector('.btn-dl');
+    const lockOnCard   = hovered.querySelector('.btn-lock');
+
+    if (e.key === 'r' || e.key === 'R') { e.preventDefault(); retryOnCard?.click(); }
+    else if (e.key === 'd' || e.key === 'D') { e.preventDefault(); dlOnCard?.click(); }
+    else if (e.key === 'l' || e.key === 'L') { e.preventDefault(); lockOnCard?.click(); }
+  });
+
+  // ── Compare modal (#3) ─────────────────────────────────────────────────────
+  const compareOverlay = document.getElementById('compare-overlay');
+  const compareImages  = document.getElementById('compare-images');
+  const compareClose   = document.getElementById('compare-close');
+
+  function openCompare(generatedSrc, label) {
+    let refSrc = '';
+    if (genState.files && genState.files.length > 0) {
+      refSrc = URL.createObjectURL(genState.files[0]);
+    }
+    openCompareSrc(refSrc, generatedSrc, label);
+  }
+
+  function openCompareSrc(refSrc, generatedSrc, label) {
+    compareImages.innerHTML = '';
+    compareImages.style.gridTemplateColumns = '1fr 1fr';
+
+    const refFig = document.createElement('figure');
+    refFig.innerHTML = '<figcaption>Reference</figcaption>';
+    const refImg = document.createElement('img');
+    if (refSrc) refImg.src = refSrc;
+    refFig.appendChild(refImg);
+
+    const genFig = document.createElement('figure');
+    genFig.innerHTML = '<figcaption>Generated — ' + label + '</figcaption>';
+    const genImg = document.createElement('img');
+    genImg.src = generatedSrc;
+    genFig.appendChild(genImg);
+
+    compareImages.append(refFig, genFig);
+    compareOverlay.style.display = 'flex';
+  }
+
+  async function openCompareAll(productName) {
+    const section = findProductSection(productName);
+    if (!section) return;
+    const productFolder = batchFolderMap[productName] || '';
+
+    let refSrc = '';
+    try {
+      const r = await fetch('/product/reference?folder=' + encodeURIComponent(productFolder));
+      const d = await r.json();
+      if (d.path) refSrc = '/file?path=' + encodeURIComponent(d.path);
+    } catch (e) {}
+
+    const cards = section.querySelectorAll('.result-card');
+    if (cards.length === 0) return;
+
+    compareImages.innerHTML = '';
+    compareImages.style.gridTemplateColumns = '220px repeat(' + cards.length + ', minmax(220px, 1fr))';
+
+    const refFig = document.createElement('figure');
+    refFig.innerHTML = '<figcaption><strong>Reference</strong></figcaption>';
+    const refImg = document.createElement('img');
+    if (refSrc) refImg.src = refSrc;
+    refFig.appendChild(refImg);
+    compareImages.appendChild(refFig);
+
+    cards.forEach(c => {
+      const cImg = c.querySelector('img');
+      const cLbl = c.querySelector('.result-card-label')?.textContent || '';
+      if (!cImg) return;
+      const fig = document.createElement('figure');
+      fig.innerHTML = '<figcaption>' + cLbl + '</figcaption>';
+      const gi = document.createElement('img');
+      gi.src = cImg.src;
+      fig.appendChild(gi);
+      compareImages.appendChild(fig);
+    });
+
+    compareOverlay.style.display = 'flex';
+  }
+
+  compareClose.addEventListener('click', () => { compareOverlay.style.display = 'none'; });
+  compareOverlay.addEventListener('click', (e) => {
+    if (e.target === compareOverlay) compareOverlay.style.display = 'none';
+  });
+
+  // ── Session history UI (#6) ───────────────────────────────────────────────
+  const historyHeader = document.getElementById('history-header');
+  const historyBody   = document.getElementById('history-body');
+
+  historyHeader.addEventListener('click', () => {
+    historyHeader.classList.toggle('open');
+    historyBody.classList.toggle('visible');
+  });
+
+  document.getElementById('history-clear').addEventListener('click', clearHistory);
+  renderHistory();
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  loadCatalog();
+</script>
+
+</body>
+</html>

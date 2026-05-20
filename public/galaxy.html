@@ -1,0 +1,1409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Jewel Studio — Generate & Edit</title>
+<link rel="icon" type="image/png" href="/assets/brands/mina/logo.png" />
+<style>
+  /* ── Tokens ──────────────────────────────────────────────────────────── */
+  :root {
+    --bg: #fafafa;
+    --surface: #ffffff;
+    --surface-2: #f4f4f5;
+    --border: #e4e4e7;
+    --border-strong: #d4d4d8;
+    --text: #18181b;
+    --muted: #71717a;
+    --muted-2: #a1a1aa;
+    --accent: #6366f1;
+    --accent-hover: #4f46e5;
+    --accent-soft: #eef2ff;
+    --success: #10b981;
+    --danger: #ef4444;
+    --radius: 14px;
+    --radius-sm: 10px;
+    --shadow-card: 0 1px 2px rgba(0,0,0,0.04);
+    --sidebar-w: 248px;
+    --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  body.dark {
+    --bg: #0a0a0b;
+    --surface: #18181b;
+    --surface-2: #27272a;
+    --border: #27272a;
+    --border-strong: #3f3f46;
+    --text: #fafafa;
+    --muted: #a1a1aa;
+    --muted-2: #71717a;
+    --accent: #818cf8;
+    --accent-hover: #6366f1;
+    --accent-soft: #1e1b4b;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-body);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  /* ── Layout ──────────────────────────────────────────────────────────── */
+  .app {
+    display: grid;
+    grid-template-columns: var(--sidebar-w) 1fr;
+    min-height: 100vh;
+  }
+  .app.collapsed { grid-template-columns: 64px 1fr; }
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 18px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+  .brand-block {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .brand-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .brand-logo {
+    height: 32px;
+    width: 32px;
+    object-fit: contain;
+    border-radius: 6px;
+  }
+  .brand-select {
+    flex: 1;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    font-size: 13px;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .sidebar-toggle {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .sidebar-toggle:hover { background: var(--surface-2); color: var(--text); }
+  nav.nav { display: flex; flex-direction: column; gap: 2px; }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 11px;
+    border-radius: var(--radius-sm);
+    color: var(--muted);
+    cursor: pointer;
+    font-weight: 500;
+    text-decoration: none;
+    user-select: none;
+    transition: background .12s, color .12s;
+  }
+  .nav-item:hover { background: var(--surface-2); color: var(--text); }
+  .nav-item.active { background: var(--accent-soft); color: var(--accent); }
+  .nav-item .icon { width: 16px; display: inline-flex; }
+  .sidebar-section-label {
+    text-transform: uppercase;
+    font-size: 0.66rem;
+    letter-spacing: 0.08em;
+    color: var(--muted-2);
+    padding: 0 11px;
+    margin-top: 6px;
+  }
+  .sidebar-footer {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+  .credit-line {
+    font-size: 12px;
+    color: var(--muted);
+    padding: 0 11px;
+  }
+  .credit-line strong { color: var(--text); }
+
+  main.main {
+    padding: 36px 40px 80px;
+    min-width: 0;
+  }
+  .page-head {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+  .page-head h1 {
+    font-size: 3rem;
+    font-weight: 800;
+    margin: 0 0 8px;
+    letter-spacing: -0.02em;
+  }
+  .page-head p {
+    color: var(--muted);
+    font-size: 1.05rem;
+    margin: 0;
+  }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    gap: 22px;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+  @media (max-width: 1100px) { .two-col { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px 22px 24px;
+    box-shadow: var(--shadow-card);
+  }
+
+  .field { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; }
+  .field:first-child { margin-top: 0; }
+  .field-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .field-label .req { color: var(--danger); margin-left: 2px; }
+  .field-hint { font-size: 0.74rem; color: var(--muted); }
+  textarea.input, input.input, select.input {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text);
+    width: 100%;
+    transition: border-color .12s;
+  }
+  textarea.input:focus, input.input:focus, select.input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  textarea.input { resize: vertical; min-height: 110px; }
+  .input-row { position: relative; }
+  .input-counter {
+    position: absolute;
+    right: 10px; bottom: 8px;
+    font-size: 0.7rem;
+    color: var(--muted-2);
+    pointer-events: none;
+  }
+  .row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .chip-btn {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 12px;
+    color: var(--text);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .chip-btn:hover { border-color: var(--border-strong); background: var(--surface); }
+  .chip-btn .icon { font-size: 13px; }
+
+  .protip {
+    margin-top: 12px;
+    background: var(--accent-soft);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    font-size: 12.5px;
+    color: var(--text);
+  }
+  .protip strong { color: var(--accent); }
+
+  .dropzone {
+    border: 1.5px dashed var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 26px 18px;
+    text-align: center;
+    color: var(--muted);
+    cursor: pointer;
+    background: var(--surface-2);
+    transition: border-color .12s, background .12s;
+  }
+  .dropzone:hover, .dropzone.dragover { border-color: var(--accent); background: var(--accent-soft); }
+  .dropzone .browse { color: var(--accent); text-decoration: underline; }
+  .ref-thumbs {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;
+  }
+  .ref-thumb {
+    position: relative;
+    width: 60px; height: 60px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .ref-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .ref-thumb .x {
+    position: absolute; top: 2px; right: 2px;
+    width: 18px; height: 18px;
+    background: rgba(0,0,0,.6); color: #fff;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; cursor: pointer;
+  }
+
+  details.advanced {
+    margin-top: 20px;
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+  }
+  details.advanced summary {
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.86rem;
+    list-style: none;
+    color: var(--text);
+    display: flex; align-items: center; gap: 6px;
+  }
+  details.advanced summary::-webkit-details-marker { display: none; }
+  details.advanced summary::after { content: '▾'; color: var(--muted); font-size: 0.7rem; }
+  details.advanced[open] summary::after { content: '▴'; }
+
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 12px;
+  }
+  .toggle-label {
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .toggle-label .l { font-weight: 600; font-size: 0.82rem; }
+  .toggle-label .h { font-size: 0.72rem; color: var(--muted); }
+  .switch {
+    position: relative;
+    width: 36px; height: 20px;
+    background: var(--border-strong);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background .15s;
+    flex-shrink: 0;
+  }
+  .switch::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 16px; height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform .15s;
+  }
+  .switch.on { background: var(--accent); }
+  .switch.on::after { transform: translateX(16px); }
+
+  .btn-primary {
+    margin-top: 22px;
+    width: 100%;
+    padding: 14px 16px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: var(--accent);
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: background .12s;
+  }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+  .btn-secondary {
+    margin-top: 10px;
+    width: 100%;
+    padding: 11px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    font-weight: 500;
+    font-size: 0.86rem;
+    cursor: pointer;
+  }
+  .btn-secondary:hover { border-color: var(--border-strong); background: var(--surface-2); }
+
+  /* ── Result panel ────────────────────────────────────────────────────── */
+  .result-panel {
+    min-height: 540px;
+    display: flex;
+    flex-direction: column;
+  }
+  .result-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--muted);
+  }
+  .result-empty .ph {
+    width: 66px; height: 66px;
+    background: var(--accent-soft);
+    border-radius: var(--radius);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; color: var(--accent);
+  }
+  .result-empty .l { color: var(--accent); font-weight: 600; font-size: 0.95rem; }
+  .result-empty .h { font-size: 0.85rem; }
+  .result-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+  }
+  .result-tile {
+    position: relative;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    aspect-ratio: 1 / 1;
+  }
+  .result-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .result-tile .actions {
+    position: absolute;
+    top: 6px; right: 6px;
+    display: flex; gap: 4px;
+    opacity: 0;
+    transition: opacity .12s;
+  }
+  .result-tile:hover .actions { opacity: 1; }
+  .result-tile .actions button {
+    background: rgba(24,24,27,0.85); color: #fff;
+    border: none;
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .result-tile .actions button:hover { background: var(--accent); }
+
+  .loader {
+    width: 100%;
+    aspect-ratio: 1/1;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(110deg, var(--surface-2) 8%, var(--border) 18%, var(--surface-2) 33%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s linear infinite;
+  }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* ── Modal (Quick Prompts + Model Picker) ───────────────────────────── */
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(24, 24, 27, 0.5);
+    display: none;
+    align-items: center; justify-content: center;
+    padding: 20px;
+    z-index: 50;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    max-width: 880px;
+    width: 100%;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  }
+  .modal-head {
+    padding: 22px 26px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .modal-head h2 { margin: 0 0 4px; font-size: 1.3rem; }
+  .modal-head p { margin: 0; color: var(--muted); font-size: 0.85rem; }
+  .modal-close {
+    background: transparent; border: none;
+    font-size: 22px; line-height: 1;
+    color: var(--muted); cursor: pointer;
+    padding: 0; width: 28px; height: 28px;
+  }
+  .modal-body {
+    padding: 18px 26px 26px;
+    overflow-y: auto;
+  }
+  .preset-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+  }
+  .preset-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    cursor: pointer;
+    background: var(--surface);
+    transition: border-color .12s, background .12s;
+  }
+  .preset-card:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .preset-card .ttl { font-weight: 600; font-size: 0.92rem; margin-bottom: 4px; }
+  .preset-card .desc { font-size: 0.78rem; color: var(--muted); line-height: 1.45; }
+  .preset-card .cat {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-transform: capitalize;
+  }
+  .model-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 700px) { .model-grid { grid-template-columns: 1fr; } }
+  .model-card {
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    cursor: pointer;
+    background: var(--surface);
+    transition: border-color .12s, background .12s;
+  }
+  .model-card:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .model-card.selected { border-color: var(--accent); background: var(--accent-soft); }
+  .model-card .ttl { font-weight: 700; font-size: 1rem; margin-bottom: 4px; }
+  .model-card .tier {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+  }
+  .model-card .tier.fast { background: var(--success); }
+  .model-card .desc { font-size: 0.82rem; color: var(--muted); line-height: 1.5; }
+
+  /* ── Catalog iframe ──────────────────────────────────────────────────── */
+  .catalog-frame {
+    width: 100%;
+    height: calc(100vh - 80px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+  }
+
+  /* ── Toast ───────────────────────────────────────────────────────────── */
+  .toast {
+    position: fixed;
+    top: 20px; right: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-size: 0.85rem;
+    transform: translateX(120%);
+    transition: transform .25s;
+    z-index: 100;
+    max-width: 320px;
+  }
+  .toast.show { transform: translateX(0); }
+  .toast.error { border-color: var(--danger); color: var(--danger); }
+  .toast.success { border-color: var(--success); }
+
+  /* ── Hidden views ────────────────────────────────────────────────────── */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ── History list ────────────────────────────────────────────────────── */
+  .history-list {
+    display: flex; flex-direction: column; gap: 10px;
+    max-width: 880px; margin: 0 auto;
+  }
+  .history-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    display: grid;
+    grid-template-columns: 64px 1fr auto;
+    gap: 12px;
+    align-items: center;
+  }
+  .history-item img { width: 64px; height: 64px; border-radius: 8px; object-fit: cover; }
+  .history-item .meta { font-size: 0.82rem; }
+  .history-item .meta .pr { color: var(--muted); font-size: 0.72rem; margin-top: 3px; }
+
+  /* Sidebar collapsed mode */
+  .app.collapsed .sidebar { padding: 18px 8px; }
+  .app.collapsed .sidebar :is(.brand-row > select, .credit-line, .sidebar-section-label, .nav-item span:not(.icon)) { display: none; }
+  .app.collapsed .nav-item { justify-content: center; padding: 9px; }
+  .app.collapsed .brand-block { border-bottom: none; padding-bottom: 0; }
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <!-- ═══ SIDEBAR ═══ -->
+  <aside class="sidebar">
+    <div class="brand-block">
+      <div class="brand-row">
+        <img id="brand-logo" class="brand-logo" src="/assets/brands/mina/logo.png" alt="" />
+        <select id="brand-select" class="brand-select" title="Switch brand"></select>
+        <button id="sidebar-toggle" class="sidebar-toggle" title="Collapse sidebar">«</button>
+      </div>
+    </div>
+    <nav class="nav">
+      <a class="nav-item active" data-view="generate"><span class="icon">✨</span><span>Generate</span></a>
+      <a class="nav-item" data-view="edit"><span class="icon">🖌️</span><span>Edit</span></a>
+      <a class="nav-item" data-view="catalog"><span class="icon">📚</span><span>Catalog (Pipeline)</span></a>
+      <a class="nav-item" data-view="history"><span class="icon">🕘</span><span>History</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="credit-line">Session: <strong id="session-cost">$0.00</strong> · <strong id="session-imgs">0 imgs</strong></div>
+      <div class="row-actions" style="margin: 0; padding: 0 4px;">
+        <button class="chip-btn" id="dark-toggle" title="Dark mode">☾</button>
+        <button class="chip-btn" id="reset-usage" title="Reset session counter">↺ Reset</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══ MAIN ═══ -->
+  <main class="main">
+
+    <!-- ─── GENERATE VIEW ─── -->
+    <section class="view active" id="view-generate">
+      <div class="page-head">
+        <h1>AI Image Generator</h1>
+        <p>Transform your ideas into stunning images using AI</p>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="field">
+            <label class="field-label" for="gen-prompt">Image Description<span class="req">*</span></label>
+            <div class="input-row">
+              <textarea id="gen-prompt" class="input" placeholder="Describe your image..." maxlength="50000"></textarea>
+              <div class="input-counter" id="gen-prompt-counter">0/50000</div>
+            </div>
+            <div class="row-actions">
+              <button class="chip-btn" id="gen-quick-prompts"><span class="icon">📚</span>Quick Prompts</button>
+              <button class="chip-btn" id="gen-clear-prompt"><span class="icon">⨯</span>Clear</button>
+            </div>
+            <div class="protip"><strong>💡 ProTip:</strong> Click <em>Quick Prompts</em> to load a brand-tuned shot template, then tweak before generating.</div>
+          </div>
+
+          <div class="field">
+            <label class="field-label">Model</label>
+            <button class="chip-btn" id="gen-model-btn" style="width: 100%; padding: 10px 12px; border-radius: var(--radius-sm); justify-content: space-between;">
+              <span style="display: flex; align-items: center; gap: 8px;"><span class="icon">G</span><span id="gen-model-label">Nano Banana 2</span></span>
+              <span style="color: var(--muted);">▾</span>
+            </button>
+          </div>
+
+          <div class="field">
+            <label class="field-label">Resolution</label>
+            <select id="gen-resolution" class="input">
+              <option value="draft">Draft · 512px</option>
+              <option value="standard" selected>Standard · 1K</option>
+              <option value="high">High · 2K</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label class="field-label">Aspect Ratio</label>
+            <select id="gen-aspect" class="input">
+              <option value="1:1" selected>Square (1:1)</option>
+              <option value="4:3">Landscape (4:3)</option>
+              <option value="3:4">Portrait (3:4)</option>
+              <option value="16:9">Wide (16:9)</option>
+              <option value="9:16">Tall (9:16)</option>
+            </select>
+            <div class="field-hint">Aspect ratio applies to Nano Banana 2 only.</div>
+          </div>
+
+          <div class="field">
+            <label class="field-label">Number of Images</label>
+            <select id="gen-count" class="input">
+              <option value="1" selected>1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label class="field-label">Reference Images (Optional, max 10)</label>
+            <div class="dropzone" id="gen-dropzone">
+              <span>Drag &amp; drop, or <span class="browse">browse</span></span>
+              <input type="file" id="gen-files" multiple accept="image/*" hidden />
+            </div>
+            <div class="ref-thumbs" id="gen-thumbs"></div>
+          </div>
+
+          <details class="advanced">
+            <summary>Advanced Settings</summary>
+            <div class="toggle-row" id="gen-overlay-row">
+              <div class="toggle-label">
+                <div class="l">Brand overlay (logo + weight)</div>
+                <div class="h">Composite brand logo + weight caption onto the result.</div>
+              </div>
+              <div class="switch" id="gen-overlay-switch"></div>
+            </div>
+            <div class="field" id="gen-weight-field">
+              <input type="text" id="gen-weight" class="input" placeholder="e.g. 3.78g" />
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <div class="l">Use brand intro prompt</div>
+                <div class="h">Prepend the brand's fidelity-locked preamble (recommended for jewelry).</div>
+              </div>
+              <div class="switch on" id="gen-intro-switch"></div>
+            </div>
+          </details>
+
+          <button class="btn-primary" id="gen-go">✨ Generate</button>
+        </div>
+
+        <div class="card result-panel">
+          <div class="result-empty" id="gen-empty">
+            <div class="ph">🖼</div>
+            <div class="l">Your creations will appear here</div>
+            <div class="h">Start generating stunning images with AI</div>
+          </div>
+          <div class="result-grid" id="gen-results" style="display: none;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── EDIT VIEW ─── -->
+    <section class="view" id="view-edit">
+      <div class="page-head">
+        <h1>Edit Images with AI</h1>
+        <p>Use words to describe what you want to edit in your image</p>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="field">
+            <label class="field-label">Source Image<span class="req">*</span></label>
+            <div class="dropzone" id="edit-source-zone">
+              <span>Drag &amp; drop, or <span class="browse">browse</span></span>
+              <input type="file" id="edit-source-files" accept="image/*" hidden />
+            </div>
+            <div class="ref-thumbs" id="edit-source-thumb"></div>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="edit-prompt">Edit Prompt<span class="req">*</span></label>
+            <div class="input-row">
+              <textarea id="edit-prompt" class="input" placeholder='e.g. "change the background to deep emerald velvet"' maxlength="2000"></textarea>
+              <div class="input-counter" id="edit-prompt-counter">0/2000</div>
+            </div>
+            <div class="row-actions">
+              <button class="chip-btn" id="edit-quick-prompts"><span class="icon">📚</span>Quick Prompts</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field-label">Model</label>
+            <button class="chip-btn" id="edit-model-btn" style="width: 100%; padding: 10px 12px; border-radius: var(--radius-sm); justify-content: space-between;">
+              <span style="display: flex; align-items: center; gap: 8px;"><span class="icon">G</span><span id="edit-model-label">Nano Banana 2</span></span>
+              <span style="color: var(--muted);">▾</span>
+            </button>
+          </div>
+
+          <div class="field">
+            <label class="field-label">Resolution</label>
+            <select id="edit-resolution" class="input">
+              <option value="draft">Draft · 512px</option>
+              <option value="standard" selected>Standard · 1K</option>
+              <option value="high">High · 2K</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label class="field-label">Style References (Optional, max 9)</label>
+            <div class="dropzone" id="edit-refs-zone">
+              <span>Drag &amp; drop additional refs to apply their style</span>
+              <input type="file" id="edit-refs-files" multiple accept="image/*" hidden />
+            </div>
+            <div class="ref-thumbs" id="edit-refs-thumbs"></div>
+          </div>
+
+          <details class="advanced">
+            <summary>Advanced Settings</summary>
+            <div class="toggle-row" id="edit-overlay-row">
+              <div class="toggle-label">
+                <div class="l">Brand overlay (logo + weight)</div>
+                <div class="h">Composite brand logo + weight caption onto the result.</div>
+              </div>
+              <div class="switch" id="edit-overlay-switch"></div>
+            </div>
+            <div class="field">
+              <input type="text" id="edit-weight" class="input" placeholder="e.g. 3.78g" />
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <div class="l">Use brand intro prompt</div>
+                <div class="h">Prepend brand fidelity preamble. Turn off for free-form creative edits.</div>
+              </div>
+              <div class="switch" id="edit-intro-switch"></div>
+            </div>
+          </details>
+
+          <button class="btn-primary" id="edit-go">🪄 Edit Image</button>
+        </div>
+
+        <div class="card result-panel">
+          <div class="result-empty" id="edit-empty">
+            <div class="ph">✏️</div>
+            <div class="l">Ready to edit</div>
+            <div class="h">Upload an image and describe how you want to change it</div>
+          </div>
+          <div class="result-grid" id="edit-results" style="display: none;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── CATALOG VIEW (existing pipeline as iframe) ─── -->
+    <section class="view" id="view-catalog">
+      <iframe class="catalog-frame" id="catalog-frame" data-src="/catalog.html"></iframe>
+    </section>
+
+    <!-- ─── HISTORY VIEW ─── -->
+    <section class="view" id="view-history">
+      <div class="page-head">
+        <h1>History</h1>
+        <p>Your recent generations and edits, stored locally in this browser</p>
+      </div>
+      <div class="history-list" id="history-list"></div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ═══ MODELS MODAL ═══ -->
+<div class="modal-backdrop" id="model-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <h2>Select AI Model</h2>
+        <p>Choose between Nano Banana Pro (high fidelity, slower) and Nano Banana 2 (fast, affordable).</p>
+      </div>
+      <button class="modal-close" data-close="model-modal">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="model-grid" id="model-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ QUICK PROMPTS MODAL ═══ -->
+<div class="modal-backdrop" id="prompts-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <h2>Quick Prompts</h2>
+        <p>Brand-tuned shot templates. Tap one to load it into the prompt.</p>
+      </div>
+      <button class="modal-close" data-close="prompts-modal">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="preset-grid" id="preset-grid"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ╔══════════════════════════════════════════════════════════════════════════╗
+// ║  STATE                                                                   ║
+// ╚══════════════════════════════════════════════════════════════════════════╝
+const STATE = {
+  brand: localStorage.getItem('hom-active-brand') || 'mina',
+  brands: [],
+  view: localStorage.getItem('jewel-view') || 'generate',
+  providers: {},
+  selectedModel: { generate: localStorage.getItem('jewel-gen-model') || 'nanobana2', edit: localStorage.getItem('jewel-edit-model') || 'nanobana2' },
+  shotCatalog: {},
+  refFiles: { generate: [], edit: [] },
+  sourceFile: null,
+  modelTarget: null, // 'generate' | 'edit' — which view's model is being picked
+  promptTarget: null,
+};
+
+// ╔══════════════════════════════════════════════════════════════════════════╗
+// ║  HELPERS                                                                 ║
+// ╚══════════════════════════════════════════════════════════════════════════╝
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+const setBrand = (id) => { STATE.brand = id; localStorage.setItem('hom-active-brand', id); };
+
+function toast(msg, kind = '') {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + kind;
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+function openModal(id) { $('#' + id).classList.add('open'); }
+function closeModal(id) { $('#' + id).classList.remove('open'); }
+$$('.modal-close').forEach(b => b.addEventListener('click', () => closeModal(b.dataset.close)));
+$$('.modal-backdrop').forEach(m => m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('open'); }));
+
+// Inject brand into every fetch & EventSource — same pattern as the legacy UI.
+(function initBrandHooks() {
+  const _fetch = window.fetch.bind(window);
+  const BRAND_GET_ENDPOINTS = ['/shots', '/batch', '/scan-folder', '/product/reference'];
+  window.fetch = function(input, init) {
+    const brand = STATE.brand;
+    let url = input;
+    let opts = init || {};
+    if (typeof url === 'string' && url.startsWith('/')) {
+      if (BRAND_GET_ENDPOINTS.some(e => url === e || url.startsWith(e + '?')) && !/[?&]brand=/.test(url)) {
+        url += (url.includes('?') ? '&' : '?') + 'brand=' + encodeURIComponent(brand);
+      }
+    }
+    if (opts.body) {
+      if (opts.body instanceof FormData && !opts.body.has('brand')) opts.body.append('brand', brand);
+      else if (typeof opts.body === 'string') {
+        const ct = (opts.headers && (opts.headers['Content-Type'] || opts.headers['content-type'])) || '';
+        if (ct.includes('application/json')) {
+          try {
+            const p = JSON.parse(opts.body);
+            if (p && typeof p === 'object' && !Array.isArray(p) && p.brand === undefined) {
+              p.brand = brand;
+              opts = Object.assign({}, opts, { body: JSON.stringify(p) });
+            }
+          } catch (e) {}
+        }
+      }
+    }
+    return _fetch(url, opts);
+  };
+})();
+
+// ╔══════════════════════════════════════════════════════════════════════════╗
+// ║  SIDEBAR + ROUTER                                                        ║
+// ╚══════════════════════════════════════════════════════════════════════════╝
+function setView(name) {
+  STATE.view = name;
+  localStorage.setItem('jewel-view', name);
+  $$('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
+  $$('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.view === name));
+  // Lazy-load the catalog iframe so its (heavy) JS doesn't run unless needed.
+  if (name === 'catalog') {
+    const f = $('#catalog-frame');
+    if (!f.src) f.src = f.dataset.src + '?brand=' + encodeURIComponent(STATE.brand);
+  }
+  if (name === 'history') renderHistory();
+}
+$$('.nav-item').forEach(n => n.addEventListener('click', () => setView(n.dataset.view)));
+
+$('#sidebar-toggle').addEventListener('click', () => {
+  document.getElementById('app').classList.toggle('collapsed');
+  $('#sidebar-toggle').textContent = document.getElementById('app').classList.contains('collapsed') ? '»' : '«';
+});
+
+// Dark toggle
+function applyDark() {
+  const dark = localStorage.getItem('jewel-dark') === '1';
+  document.body.classList.toggle('dark', dark);
+  $('#dark-toggle').textContent = dark ? '☀' : '☾';
+}
+$('#dark-toggle').addEventListener('click', () => {
+  localStorage.setItem('jewel-dark', document.body.classList.contains('dark') ? '0' : '1');
+  applyDark();
+  applyBrandLogo();
+});
+applyDark();
+
+// ╔══════════════════════════════════════════════════════════════════════════╗
+// ║  BRAND BOOTSTRAP                                                         ║
+// ╚══════════════════════════════════════════════════════════════════════════╝
+async function bootBrands() {
+  const r = await fetch('/brands').then(r => r.json()).catch(() => ({ brands: [] }));
+  STATE.brands = r.brands || [];
+  if (!STATE.brands.find(b => b.id === STATE.brand)) STATE.brand = STATE.brands[0]?.id || 'mina';
+  const sel = $('#brand-select');
+  sel.innerHTML = STATE.brands.map(b => `<option value="${b.id}">${b.shortLabel || b.label}</option>`).join('');
+  sel.value = STATE.brand;
+  sel.addEventListener('change', () => {
+    setBrand(sel.value);
+    applyBrandLogo();
+    applyBrandOverlayRow();
+    // Reload catalog iframe with new brand (only if already loaded)
+    const f = $('#catalog-frame');
+    if (f.src) f.src = f.dataset.src + '?brand=' + encodeURIComponent(STATE.brand);
+    refreshShotCatalog();
+  });
+  applyBrandLogo();
+  applyBrandOverlayRow();
+}
+function applyBrandLogo() {
+  const b = STATE.brands.find(x => x.id === STATE.brand);
+  if (!b) return;
+  $('#brand-logo').src = document.body.classList.contains('dark') ? (b.logoDark || b.logo) : b.logo;
+  $('#brand-logo').alt = b.shortLabel || b.label;
+}
+function applyBrandOverlayRow() {
+  const b = STATE.brands.find(x => x.id === STATE.brand);
+  const supports = !!(b && b.overlay && b.overlay.supported);
+  ['gen', 'edit'].forEach(prefix => {
+    const row = $('#' + prefix + '-overlay-row');
+    if (row) row.style.display = supports ? '' : 'none';
+    const sw = $('#' + prefix + '-overlay-switch');
+    if (sw && supports) {
+      const storedKey = 'jewel-overlay-' + prefix + '-' + STATE.brand;
+      const stored = localStorage.getItem(storedKey);
+      const def = stored === null ? !!b.overlay.defaultEnabled : stored === '1';
+      sw.classList.toggle('on', def);
+    }
+  });
+}
+
+// ╔══════════════════════════════════════════════════════════════════════════╗
+// ║  PROVIDERS / MODELS                                                      ║
+// ╚══════════════════════════════════════════════════════════════════════════╝
+async function bootProviders() {
+  STATE.providers = await fetch('/providers').then(r => r.json()).catch(() => ({}));
+  // Default to nanobana2 if available, fall back to gemini
+  ['generate', 'edit'].forEach(view => {
+    if (!STATE.providers[STATE.selectedModel[view]]) {
+      STATE.selectedModel[view] = STATE.providers.nanobana2 ? 'nanobana2' : (STATE.providers.gemini ? 'gemini' : Object.keys(STATE.providers)[0]);
+    }
+  });
+  refreshModelLabels();
+}
+function refreshModelLabels() {
+  ['gen', 'edit'].forEach(prefix => {
+    const view = prefix === 'gen' ? 'generate' : 'edit';
+    const id = STATE.selectedModel[view];
+    const lbl = (STATE.providers[id] && STATE.providers[id].label) || id || '—';
+    const el = $('#' + prefix + '-model-label');
+    if (el) el.textContent = lbl;
+  });
+}
+function openModelPicker(target) {
+  STATE.modelTarget = target;
+  const grid = $('#model-grid');
+  const order = ['gemini', 'nanobana2']; // pro first, then fast
+  const current = STATE.selectedModel[target];
+  grid.innerHTML = order.filter(id => STATE.providers[id]).map(id => {
+    const p = STATE.providers[id];
+    const tier = (p.tier === 'pro') ? 'pro' : 'fast';
+    const tierLabel = tier === 'pro' ? 'Pro' : 'Fast';
+    return `
+      <div class="model-card ${id === current ? 'selected' : ''}" data-id="${id}">
+        <span class="tier ${tier}">${tierLabel}</span>
+        <div class="ttl">${p.label}</div>
+        <div class="desc">${p.description || ''}</div>
+      </div>`;
+  }).join('');
+  grid.querySelectorAll('.model-card').forEach(c => c.addEventListener('click', () => {
+    STATE.selectedModel[target] = c.dataset.id;
+    localStorage.setItem('jewel-' + (target === 'generate' ? 'gen' : 'edit') + '-model', c.dataset.id);
+    refreshModelLabels();
+    closeModal('model-modal');
+  }));
+  openModal('model-modal');
+}
+$('#gen-model-btn').addEventListener('click', () => openModelPicker('generate'));
+$('#edit-model-btn').addEventListener('click', () => openModelPicker('edit'));
+
+// ╔══════════════════════════════════════════════════════════════════════════╗
+// ║  QUICK PROMPTS (brand-aware shot catalog)                                ║
+// ╚══════════════════════════════════════════════════════════════════════════╝
+async function refreshShotCatalog() {
+  try {
+    const r = await fetch('/shots').then(r => r.json());
+    // /shots returns the catalog object directly (keyed by shotId).
+    STATE.shotCatalog = (r && typeof r === 'object' && !Array.isArray(r)) ? r : {};
+  } catch (e) { STATE.shotCatalog = {}; }
+}
+function openQuickPrompts(target) {
+  STATE.promptTarget = target;
+  const grid = $('#preset-grid');
+  const items = Object.entries(STATE.shotCatalog);
+  if (items.length === 0) {
+    grid.innerHTML = '<div style="color: var(--muted); padding: 20px;">No presets available for this brand.</div>';
+  } else {
+    grid.innerHTML = items.map(([id, shot]) => `
+      <div class="preset-card" data-id="${id}">
+        <div class="ttl">${shot.label || id}</div>
+        <div class="desc">${shot.description || ''}</div>
+        <span class="cat">${shot.category || ''}</span>
+      </div>`).join('');
+    grid.querySelectorAll('.preset-card').forEach(c => c.addEventListener('click', async () => {
+      // Fetch the rendered prompt for this shot+brand from the server.
+      try {
+        const r = await fetch('/prompt-preview', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ shotId: c.dataset.id, customInstruction: '', brand: STATE.brand }),
+        }).then(r => r.json());
+        const prompt = r.prompt || (STATE.shotCatalog[c.dataset.id]?.description || '');
+        const ta = $(target === 'generate' ? '#gen-prompt' : '#edit-prompt');
+        ta.value = prompt;
+        ta.dispatchEvent(new Event('input'));
+        // When loading a brand preset, the brand intro is already inside the
+        // preview prompt — don't double-prepend, so flip the intro switch off.
+        const introSw = $(target === 'generate' ? '#gen-intro-switch' : '#edit-intro-switch');
+        if (introSw) introSw.classList.remove('on');
+        closeModal('prompts-modal');
+        toast('Loaded ' + (STATE.shotCatalog[c.dataset.id]?.label || c.dataset.id));
+      } catch (e) {
+        toast('Failed to load prompt: ' + e.message, 'error');
+      }
+    }));
+  }
+  openModal('prompts-modal');
+}
+$('#gen-quick-prompts').addEventListener('click', () => openQuickPrompts('generate'));
+$('#edit-quick-prompts').addEventListener('click', () => openQuickPrompts('edit'));
+$('#gen-clear-prompt').addEventListener('click', () => {
+  $('#gen-prompt').value = '';
+  $('#gen-prompt').dispatchEvent(new Event('input'));
+});
+
+// ╔══════════════════════════════════════════════════════════════════════════╗
+// ║  TEXTAREA COUNTERS                                                       ║
+// ╚══════════════════════════════════════════════════════════════════════════╝
+function wireCounter(taId, counterId, max) {
+  const ta = $(taId), c = $(counterId);
+  const update = () => c.textContent = `${ta.value.length}/${max}`;
+  ta.addEventListener('input', update);
+  update();
+}
+wireCounter('#gen-prompt', '#gen-prompt-counter', 50000);
+wireCounter('#edit-prompt', '#edit-prompt-counter', 2000);
+
+// ╔══════════════════════════════════════════════════════════════════════════╗
+// ║  TOGGLES (overlay / brand intro)                                         ║
+// ╚══════════════════════════════════════════════════════════════════════════╝
+function wireSwitch(id, key) {
+  const sw = $(id);
+  sw.addEventListener('click', () => {
+    sw.classList.toggle('on');
+    if (key) localStorage.setItem(key, sw.classList.contains('on') ? '1' : '0');
+  });
+}
+wireSwitch('#gen-overlay-switch'); // brand-scoped, keyed dynamically by applyBrandOverlayRow
+wireSwitch('#edit-overlay-switch');
+wireSwitch('#gen-intro-switch', 'jewel-gen-intro');
+wireSwitch('#edit-intro-switch', 'jewel-edit-intro');
+// Restore intro switch state
+['#gen-intro-switch', '#edit-intro-switch'].forEach(id => {
+  const k = 'jewel-' + (id.includes('gen') ? 'gen' : 'edit') + '-intro';
+  const v = localStorage.getItem(k);
+  if (v === '0') $(id).classList.remove('on');
+  if (v === '1') $(id).classList.add('on');
+});
+
+// Persist overlay switch per brand on click
+['#gen-overlay-switch', '#edit-overlay-switch'].forEach(id => {
+  $(id).addEventListener('click', () => {
+    const prefix = id.includes('gen') ? 'gen' : 'edit';
+    const key = 'jewel-overlay-' + prefix + '-' + STATE.brand;
+    localStorage.setItem(key, $(id).classList.contains('on') ? '1' : '0');
+  });
+});
+
+// ╔══════════════════════════════════════════════════════════════════════════╗
+// ║  FILE PICKERS / DROPZONES                                                ║
+// ╚══════════════════════════════════════════════════════════════════════════╝
+function readFileAsThumb(file) {
+  return new Promise(res => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.readAsDataURL(file);
+  });
+}
+async function renderThumbs(targetId, files, onRemove) {
+  const el = $('#' + targetId);
+  el.innerHTML = '';
+  for (let i = 0; i < files.length; i++) {
+    const url = await readFileAsThumb(files[i]);
+    const div = document.createElement('div');
+    div.className = 'ref-thumb';
+    div.innerHTML = `<img src="${url}" /><span class="x" data-i="${i}">×</span>`;
+    div.querySelector('.x').addEventListener('click', () => onRemove(i));
+    el.appendChild(div);
+  }
+}
+function wireDropzone(zoneId, inputId, onFiles) {
+  const zone = $(zoneId), input = $(inputId);
+  zone.addEventListener('click', () => input.click());
+  input.addEventListener('change', () => onFiles(Array.from(input.files || [])));
+  zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    zone.classList.remove('dragover');
+    onFiles(Array.from(e.dataTransfer.files || []));
+  });
+}
+// Generator refs (multi)
+wireDropzone('#gen-dropzone', '#gen-files', (files) => {
+  STATE.refFiles.generate = (STATE.refFiles.generate || []).concat(files).slice(0, 10);
+  renderThumbs('gen-thumbs', STATE.refFiles.generate, (i) => {
+    STATE.refFiles.generate.splice(i, 1);
+    renderThumbs('gen-thumbs', STATE.refFiles.generate, () => {});
+  });
+});
+// Editor source (single)
+wireDropzone('#edit-source-zone', '#edit-source-files', (files) => {
+  if (files[0]) {
+    STATE.sourceFile = files[0];
+    renderThumbs('edit-source-thumb', [files[0]], () => {
+      STATE.sourceFile = null;
+      $('#edit-source-thumb').innerHTML = '';
+    });
+  }
+});
+// Editor extra refs (multi)
+wireDropzone('#edit-refs-zone', '#edit-refs-files', (files) => {
+  STATE.refFiles.edit = (STATE.refFiles.edit || []).concat(files).slice(0, 9);
+  renderThumbs('edit-refs-thumbs', STATE.refFiles.edit, (i) => {
+    STATE.refFiles.edit.splice(i, 1);
+    renderThumbs('edit-refs-thumbs', STATE.refFiles.edit, () => {});
+  });
+});
+
+// ╔══════════════════════════════════════════════════════════════════════════╗
+// ║  GENERATE / EDIT EXECUTION                                               ║
+// ╚══════════════════════════════════════════════════════════════════════════╝
+async function runGenerate() {
+  const prompt = $('#gen-prompt').value.trim();
+  if (!prompt) { toast('Please enter a prompt.', 'error'); return; }
+  const fd = new FormData();
+  fd.append('prompt', prompt);
+  fd.append('provider', STATE.selectedModel.generate);
+  fd.append('resolution', $('#gen-resolution').value);
+  fd.append('aspectRatio', $('#gen-aspect').value);
+  fd.append('count', $('#gen-count').value);
+  fd.append('overlayEnabled', $('#gen-overlay-switch').classList.contains('on') ? '1' : '0');
+  fd.append('weightText', $('#gen-weight').value || '');
+  fd.append('includeBrandIntro', $('#gen-intro-switch').classList.contains('on') ? '1' : '0');
+  (STATE.refFiles.generate || []).forEach(f => fd.append('images[]', f));
+
+  const btn = $('#gen-go');
+  btn.disabled = true;
+  btn.textContent = 'Generating…';
+  showLoaders('#gen-results', '#gen-empty', parseInt($('#gen-count').value, 10) || 1);
+
+  try {
+    const r = await fetch('/generate-free', { method: 'POST', body: fd });
+    const data = await r.json();
+    if (!data.success) throw new Error(data.error || 'Failed');
+    paintResults('#gen-results', data.images || [], data.provider, prompt);
+    refreshUsage(data.usage);
+    saveHistory({ kind: 'generate', prompt, provider: data.provider, images: data.images });
+    toast(`Generated ${data.images.length} image(s)`, 'success');
+  } catch (e) {
+    toast(e.message || 'Generation failed', 'error');
+    $('#gen-empty').style.display = '';
+    $('#gen-results').style.display = 'none';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '✨ Generate';
+  }
+}
+
+async function runEdit() {
+  if (!STATE.sourceFile) { toast('Please upload a source image.', 'error'); return; }
+  const prompt = $('#edit-prompt').value.trim();
+  if (!prompt) { toast('Please enter an edit prompt.', 'error'); return; }
+  const fd = new FormData();
+  fd.append('prompt', prompt);
+  fd.append('provider', STATE.selectedModel.edit);
+  fd.append('resolution', $('#edit-resolution').value);
+  fd.append('aspectRatio', '1:1');
+  fd.append('count', '1');
+  fd.append('overlayEnabled', $('#edit-overlay-switch').classList.contains('on') ? '1' : '0');
+  fd.append('weightText', $('#edit-weight').value || '');
+  fd.append('includeBrandIntro', $('#edit-intro-switch').classList.contains('on') ? '1' : '0');
+  fd.append('images[]', STATE.sourceFile);
+  (STATE.refFiles.edit || []).forEach(f => fd.append('images[]', f));
+
+  const btn = $('#edit-go');
+  btn.disabled = true;
+  btn.textContent = 'Editing…';
+  showLoaders('#edit-results', '#edit-empty', 1);
+
+  try {
+    const r = await fetch('/generate-free', { method: 'POST', body: fd });
+    const data = await r.json();
+    if (!data.success) throw new Error(data.error || 'Failed');
+    paintResults('#edit-results', data.images || [], data.provider, prompt);
+    refreshUsage(data.usage);
+    saveHistory({ kind: 'edit', prompt, provider: data.provider, images: data.images });
+    toast('Edit complete', 'success');
+  } catch (e) {
+    toast(e.message || 'Edit failed', 'error');
+    $('#edit-empty').style.display = '';
+    $('#edit-results').style.display = 'none';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '🪄 Edit Image';
+  }
+}
+
+function showLoaders(gridSel, emptySel, count) {
+  $(emptySel).style.display = 'none';
+  const grid = $(gridSel);
+  grid.style.display = '';
+  grid.innerHTML = Array.from({ length: count }, () => '<div class="loader"></div>').join('');
+}
+function paintResults(gridSel, base64Images, provider, prompt) {
+  const grid = $(gridSel);
+  grid.innerHTML = '';
+  base64Images.forEach((b64, i) => {
+    const tile = document.createElement('div');
+    tile.className = 'result-tile';
+    tile.innerHTML = `
+      <img src="data:image/png;base64,${b64}" />
+      <div class="actions">
+        <button title="Download" data-act="dl">⬇</button>
+        <button title="Send to editor" data-act="edit">✏</button>
+      </div>`;
+    tile.querySelector('[data-act="dl"]').addEventListener('click', () => downloadB64(b64, `${provider}-${i+1}.png`));
+    tile.querySelector('[data-act="edit"]').addEventListener('click', () => sendToEditor(b64, prompt));
+    grid.appendChild(tile);
+  });
+  grid.style.display = '';
+}
+
+function downloadB64(b64, filename) {
+  const a = document.createElement('a');
+  a.href = 'data:image/png;base64,' + b64;
+  a.download = filename;
+  a.click();
+}
+async function sendToEditor(b64, prompt) {
+  const blob = await (await fetch('data:image/png;base64,' + b64)).blob();
+  STATE.sourceFile = new File([blob], 'from-generator.png', { type: 'image/png' });
+  await renderThumbs('edit-source-thumb', [STATE.sourceFile], () => {
+    STATE.sourceFile = null;
+    $('#edit-source-thumb').innerHTML = '';
+  });
+  $('#edit-prompt').value = '';
+  $('#edit-prompt').dispatchEvent(new Event('input'));
+  setView('edit');
+  toast('Sent to Editor');
+}
+
+$('#gen-go').addEventListener('click', runGenerate);
+$('#edit-go').addEventListener('click', runEdit);
+
+// ╔══════════════════════════════════════════════════════════════════════════╗
+// ║  USAGE / HISTORY                                                         ║
+// ╚══════════════════════════════════════════════════════════════════════════╝
+function refreshUsage(u) {
+  if (!u) return;
+  const tot = u.session?.total || { cost: 0, images: 0 };
+  $('#session-cost').textContent = '$' + (tot.cost || 0).toFixed(2);
+  $('#session-imgs').textContent = (tot.images || 0) + ' imgs';
+}
+async function bootUsage() {
+  try { refreshUsage(await fetch('/usage').then(r => r.json())); } catch (e) {}
+}
+$('#reset-usage').addEventListener('click', async () => {
+  await fetch('/usage/reset', { method: 'POST' });
+  bootUsage();
+  toast('Session counter reset');
+});
+
+const HISTORY_KEY = 'jewel-history';
+function saveHistory(entry) {
+  try {
+    const arr = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+    entry.brand = STATE.brand;
+    entry.ts = Date.now();
+    // Strip image data to thumbnail size — first image only — to keep storage small.
+    entry.thumb = entry.images && entry.images[0] ? entry.images[0] : null;
+    delete entry.images;
+    arr.unshift(entry);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(arr.slice(0, 40)));
+  } catch (e) {}
+}
+function renderHistory() {
+  const arr = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+  const list = $('#history-list');
+  if (arr.length === 0) {
+    list.innerHTML = '<div style="color: var(--muted); text-align: center; padding: 60px;">No history yet.</div>';
+    return;
+  }
+  list.innerHTML = arr.map((h, i) => `
+    <div class="history-item">
+      ${h.thumb ? `<img src="data:image/png;base64,${h.thumb}" />` : '<div style="width:64px;height:64px;background:var(--surface-2);border-radius:8px;"></div>'}
+      <div class="meta">
+        <div>${(h.prompt || '').slice(0, 140)}${(h.prompt || '').length > 140 ? '…' : ''}</div>
+        <div class="pr">${h.kind} · ${h.provider || ''} · ${h.brand || ''} · ${new Date(h.ts).toLocaleString()}</div>
+      </div>
+      <div>
+        ${h.thumb ? `<button class="chip-btn" onclick="downloadB64('${h.thumb}', 'history-${i+1}.png')">⬇</button>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+// ╔══════════════════════════════════════════════════════════════════════════╗
+// ║  BOOT                                                                    ║
+// ╚══════════════════════════════════════════════════════════════════════════╝
+(async function boot() {
+  await bootBrands();
+  await bootProviders();
+  await refreshShotCatalog();
+  await bootUsage();
+  setView(STATE.view);
+})();
+</script>
+</body>
+</html>
