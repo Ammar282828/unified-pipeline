@@ -67,7 +67,8 @@ const openaiClient = process.env.OPENAI_API_KEY  ? new OpenAI({ apiKey: process.
 // Multi-brand support — drives brand-specific prompts, assets, captions, and
 // overlay logos. The active brand flows in on req.body.brand / req.query.brand
 // (default falls back to DEFAULT_BRAND).
-const { BRANDS, DEFAULT_BRAND, resolveBrand, listBrands } = require('./brands');
+const { BRANDS, DEFAULT_BRAND, resolveBrand, listBrands,
+        getBrandPreset, setBrandPreset, clearBrandPreset } = require('./brands');
 
 // Which providers are available — only the two NanoBanana tiers are surfaced
 // in the UI. OpenAI is wired but hidden — kept available as a fallback target.
@@ -207,6 +208,102 @@ const SHOT_CATALOG = {
         description: 'Moody dark marble with dramatic lighting',
     },
 
+    // ── Editorial ──
+    editorial_silk: {
+        id: 'editorial_silk',
+        label: 'Silk Drape',
+        category: 'editorial',
+        description: 'Draped across flowing champagne silk',
+    },
+    editorial_petals: {
+        id: 'editorial_petals',
+        label: 'Petal Bed',
+        category: 'editorial',
+        description: 'Resting on a bed of fresh rose petals',
+    },
+    editorial_tonal: {
+        id: 'editorial_tonal',
+        label: 'Tonal Study',
+        category: 'editorial',
+        description: 'Tone-on-tone on a colour-matched backdrop',
+    },
+    editorial_paper: {
+        id: 'editorial_paper',
+        label: 'Textured Paper',
+        category: 'editorial',
+        description: 'On warm handmade cotton paper, raking light',
+    },
+    editorial_magazine: {
+        id: 'editorial_magazine',
+        label: 'Magazine Negative',
+        category: 'editorial',
+        description: 'Small in vast negative space, magazine layout',
+    },
+
+    // ── Dynamic Lighting ──
+    light_spotlight: {
+        id: 'light_spotlight',
+        label: 'Hard Spotlight',
+        category: 'lighting',
+        description: 'Single hard top spotlight, deep shadow',
+    },
+    light_rim: {
+        id: 'light_rim',
+        label: 'Rim Halo',
+        category: 'lighting',
+        description: 'Backlit glowing rim halo, cinematic',
+    },
+    light_caustics: {
+        id: 'light_caustics',
+        label: 'Caustic Glow',
+        category: 'lighting',
+        description: 'Rippling water / cut-glass light patterns',
+    },
+    light_golden: {
+        id: 'light_golden',
+        label: 'Golden Hour',
+        category: 'lighting',
+        description: 'Warm raking golden-hour glow',
+    },
+    light_gel: {
+        id: 'light_gel',
+        label: 'Colour Gel',
+        category: 'lighting',
+        description: 'Dual teal / magenta gels, fashion-editorial',
+    },
+
+    // ── Creative ──
+    creative_float: {
+        id: 'creative_float',
+        label: 'Floating',
+        category: 'creative',
+        description: 'Suspended mid-air with a soft drop shadow',
+    },
+    creative_pedestal: {
+        id: 'creative_pedestal',
+        label: 'Geometric Pedestal',
+        category: 'creative',
+        description: 'On matte stone & frosted acrylic blocks',
+    },
+    creative_mirror: {
+        id: 'creative_mirror',
+        label: 'Mirror Reflection',
+        category: 'creative',
+        description: 'On a mirror with a symmetric reflection',
+    },
+    creative_smoke: {
+        id: 'creative_smoke',
+        label: 'Smoke & Mist',
+        category: 'creative',
+        description: 'Wisps of smoke on near-black, moody',
+    },
+    creative_sparkle: {
+        id: 'creative_sparkle',
+        label: 'Bokeh Sparkle',
+        category: 'creative',
+        description: 'Crisp piece over golden sparkle bokeh',
+    },
+
     // Brand-specific extraShots (e.g. Taheri's emerald-walnut signature) live
     // in brands.js and are merged into the catalog only when their brand is
     // active — see buildShotCatalog().
@@ -249,6 +346,36 @@ const SCENE_TEMPLATES = {
     marble: `Place the piece on a Carrara marble surface with soft grey veining, edge-to-edge. One or two muted props alongside (dried flowers, silk ribbon, or a small gold-rimmed dish). Soft warm window light from the left. Piece sharp, props soft.`,
 
     marble_dark: `Place the piece on dark emperador or nero marquina marble — deep brown-black with gold or white veining, edge-to-edge. Single focused light from above-right, high contrast, deep shadows. The metal of the piece glows against the dark surface.`,
+
+    editorial_silk: `Drape the piece across flowing champagne silk that pools in soft folds, edge-to-edge. The fabric catches gentle highlights and curves around the piece. Soft diffused light from upper left. Piece tack-sharp, silk softly out of focus toward the edges.`,
+
+    editorial_petals: `Rest the piece on a dense bed of fresh rose petals in blush and cream tones, filling the frame. Petals soft and layered, the piece nestled at center. Soft overhead light, romantic and editorial. Piece razor-sharp against the dreamy petal texture.`,
+
+    editorial_tonal: `Stage the piece in a tonal still life where background, surface, and props all share one muted earthy palette — sand, clay, or dusty rose. A single sculptural prop alongside. Soft directional light from the left. Piece the clear focal point through subtle contrast.`,
+
+    editorial_paper: `Place the piece on a sheet of richly textured handmade paper — visible fibres, deckled edge, warm off-white — filling the frame. Raking light from the left grazes the texture. Piece centered and sharp, paper grain soft in the falloff.`,
+
+    editorial_magazine: `Compose the piece as a magazine editorial with generous negative space — piece small and offset to one side against a clean flat tonal background. Soft even light, refined and minimal. Piece tack-sharp, the empty space deliberate and elegant.`,
+
+    light_spotlight: `Light the piece with a single hard spotlight from directly above against a flat charcoal background, edge-to-edge. A tight pool of light on the piece, deep shadow falling off into darkness. Dramatic, high-contrast, theatrical. Piece glowing and sharp.`,
+
+    light_rim: `Backlight the piece with a bright rim halo against a flat dark background, edge-to-edge. The light wraps the silhouette in a glowing outline while the face stays softly filled. Moody and sculptural. Piece sharp with a luminous edge.`,
+
+    light_caustics: `Cast rippling caustic light patterns across the piece and its flat pale surface, as if shining through water or cut glass. Dappled bright-and-shadow play over the frame. Soft base light underneath. Piece sharp, the caustics adding movement.`,
+
+    light_golden: `Bathe the piece in warm golden-hour light raking from the lower left across a flat warm sand background, edge-to-edge. Long soft shadows, amber glow, gentle haze. Sun-drenched and romantic. Piece tack-sharp in the warm light.`,
+
+    light_gel: `Light the piece with a bold coloured gel — magenta from one side, teal from the other — against a flat neutral dark background, edge-to-edge. Saturated dual-tone glow, modern and editorial. Piece sharp where the colours meet on the metal.`,
+
+    creative_float: `Suspend the piece floating in mid-air against a flat seamless gradient background, edge-to-edge. A soft drop shadow sits below on an unseen plane. Clean even light, weightless and modern. Piece perfectly sharp and centered in the void.`,
+
+    creative_pedestal: `Display the piece on a minimal geometric pedestal — a clean stone or matte plaster block — against a flat tonal background, edge-to-edge. Soft directional light casts a gentle shadow. Sculptural and gallery-like. Piece sharp, the pedestal supporting.`,
+
+    creative_mirror: `Place the piece on a flat mirrored surface that throws a clean reflection beneath it, against a soft tonal background. One sharp piece and its mirror double. Soft light from above. Piece tack-sharp, reflection slightly softer.`,
+
+    creative_smoke: `Set the piece amid soft drifting smoke and mist against a flat dark background, edge-to-edge. Wisps curl around and behind the piece, catching faint light. Atmospheric and mysterious. Piece sharp and grounded while the smoke stays ethereal.`,
+
+    creative_sparkle: `Place the piece against a flat dark background filled with soft out-of-focus bokeh sparkles, edge-to-edge. Warm golden points of light bloom behind. Gentle key light on the piece. Festive and luminous. Piece tack-sharp against the glittering blur.`,
 };
 
 // Reverse map: catalog preset display names → shotIds. Used for the
@@ -267,6 +394,21 @@ const CATALOG_NAME_TO_ID = {
     'Lifestyle': 'model_lifestyle',
     'Marble Surface': 'marble',
     'Dark Marble': 'marble_dark',
+    'Silk Drape': 'editorial_silk',
+    'Petal Bed': 'editorial_petals',
+    'Tonal Study': 'editorial_tonal',
+    'Textured Paper': 'editorial_paper',
+    'Magazine Negative': 'editorial_magazine',
+    'Hard Spotlight': 'light_spotlight',
+    'Rim Halo': 'light_rim',
+    'Caustic Glow': 'light_caustics',
+    'Golden Hour': 'light_golden',
+    'Colour Gel': 'light_gel',
+    'Floating': 'creative_float',
+    'Geometric Pedestal': 'creative_pedestal',
+    'Mirror Reflection': 'creative_mirror',
+    'Smoke & Mist': 'creative_smoke',
+    'Bokeh Sparkle': 'creative_sparkle',
     'Taheri Signature': 'taheri_signature',
 };
 
@@ -474,6 +616,27 @@ app.get('/shots', (req, res) => {
     res.json(buildShotCatalog(brandId));
 });
 app.get('/brands', (_req, res) => res.json({ brands: listBrands(), defaultBrand: DEFAULT_BRAND }));
+
+// ── Dev settings: read / update / reset a brand's prompt presets ────────────
+// These feed the prompt builder (voice/lighting/mood/avoid/etc). Changes are
+// persisted server-side and take effect on the next generation immediately.
+app.get('/brands/:id/preset', (req, res) => {
+    const preset = getBrandPreset(req.params.id);
+    if (!preset) return res.status(404).json({ error: 'Unknown brand' });
+    res.json(preset);
+});
+app.post('/brands/:id/preset', (req, res) => {
+    const updated = setBrandPreset(req.params.id, req.body || {});
+    if (!updated) return res.status(404).json({ error: 'Unknown brand' });
+    console.log(`[DevSettings] brand=${req.params.id} preset overrides saved`);
+    res.json(updated);
+});
+app.post('/brands/:id/preset/reset', (req, res) => {
+    const updated = clearBrandPreset(req.params.id);
+    if (!updated) return res.status(404).json({ error: 'Unknown brand' });
+    console.log(`[DevSettings] brand=${req.params.id} preset overrides cleared`);
+    res.json(updated);
+});
 
 // Returns the rendered scene text for a (shotId, brand) pair — used by the
 // Catalog Presets modal to load the ACTUAL scene template into the user's
@@ -1502,6 +1665,53 @@ const LOGO_PATH = path.join(__dirname, 'public', 'assets', 'taheri-light.png');
 // Futura LT Light must be installed in the system/user fonts directory for librsvg to find it
 const FUTURA_FONT_FAMILY = 'Futura LT';
 
+// Resolve a logoTint config value ('white', '#rrggbb', or {r,g,b}) to an RGB
+// object for sharp's create background.
+function parseTintColor(tint) {
+    if (tint && typeof tint === 'object') {
+        return { r: tint.r | 0, g: tint.g | 0, b: tint.b | 0 };
+    }
+    if (typeof tint === 'string') {
+        const named = { white: '#ffffff', black: '#000000' };
+        const hex = (named[tint.toLowerCase()] || tint).replace('#', '');
+        if (/^[0-9a-fA-F]{6}$/.test(hex)) {
+            return {
+                r: parseInt(hex.slice(0, 2), 16),
+                g: parseInt(hex.slice(2, 4), 16),
+                b: parseInt(hex.slice(4, 6), 16),
+            };
+        }
+    }
+    return { r: 255, g: 255, b: 255 };
+}
+
+function tintToCss(tint) {
+    const { r, g, b } = parseTintColor(tint);
+    return `rgb(${r},${g},${b})`;
+}
+
+// Average relative luminance (0..1) of a clamped region of the base image —
+// used to decide whether a mark reads better in white or maroon over that area.
+async function regionLuminance(buf, imgW, imgH, left, top, width, height) {
+    left = Math.max(0, Math.min(Math.round(left), imgW - 1));
+    top = Math.max(0, Math.min(Math.round(top), imgH - 1));
+    width = Math.max(1, Math.min(Math.round(width), imgW - left));
+    height = Math.max(1, Math.min(Math.round(height), imgH - top));
+    const stats = await sharp(buf).extract({ left, top, width, height }).stats();
+    const [r, g, b] = stats.channels;
+    return (0.2126 * r.mean + 0.7152 * g.mean + 0.0722 * b.mean) / 255;
+}
+
+// Choose between the dark-background tint (logoTint, e.g. white) and the
+// light-background tint (logoTintLight, e.g. maroon) given a region luminance.
+// Falls back to whichever single tint is configured.
+function pickAdaptiveTint(overlayCfg, luminance) {
+    const dark = overlayCfg.logoTint;          // shown over dark areas
+    const light = overlayCfg.logoTintLight;    // shown over light areas
+    if (light && dark) return luminance > 0.5 ? light : dark;
+    return dark || light || null;
+}
+
 async function applyOverlay(base64, weightText, brandId = DEFAULT_BRAND) {
     const brand = resolveBrand(brandId);
     const overlayCfg = brand.overlay;
@@ -1520,33 +1730,66 @@ async function applyOverlay(base64, weightText, brandId = DEFAULT_BRAND) {
     const logoWidth = Math.round(ref * (580 / 3000));
 
     const composites = [];
+    const adaptive = !!(overlayCfg.logoTint && overlayCfg.logoTintLight);
 
-    // Weight text (top-left) — SVG, embedded Jost Light (Futura alternative)
+    // Weight text (top-left) — SVG, embedded Jost Light (Futura alternative).
+    // Fill adapts white/maroon to the corner it sits over when the brand
+    // defines both tints, so it never disappears on a white background.
     if (weightText && weightText.trim()) {
         const textLeftPad = Math.round(ref * (120 / 3000));
-        const textSvg = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${fontSize * 2}">
-            <text x="${textLeftPad}" y="${fontSize * 1.1}" font-family="${FUTURA_FONT_FAMILY}" font-size="${fontSize}" font-weight="300" fill="white" letter-spacing="2">${weightText.trim()}</text>
-        </svg>`);
         const textPad = Math.round(ref * (100 / 3000));
+        let textFill = 'white';
+        if (adaptive) {
+            const lum = await regionLuminance(buf, w, h, textLeftPad, textPad, Math.round(ref * 0.45), fontSize * 1.2);
+            textFill = tintToCss(pickAdaptiveTint(overlayCfg, lum));
+        } else if (overlayCfg.logoTint) {
+            textFill = tintToCss(overlayCfg.logoTint);
+        }
+        const textSvg = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${fontSize * 2}">
+            <text x="${textLeftPad}" y="${fontSize * 1.1}" font-family="${FUTURA_FONT_FAMILY}" font-size="${fontSize}" font-weight="300" fill="${textFill}" letter-spacing="2">${weightText.trim()}</text>
+        </svg>`);
         composites.push({ input: textSvg, top: textPad, left: 0, });
     }
 
-    // Brand logo (top-right) — path comes from brands.js so each brand can ship
-    // its own asset variant.
+    // Brand logo — path comes from brands.js so each brand can ship its own
+    // asset variant. Position defaults to top-right; brands may request
+    // bottom-right via overlay.logoPosition.
     const logoAbsPath = overlayCfg.logoPath && path.isAbsolute(overlayCfg.logoPath)
         ? overlayCfg.logoPath
         : path.join(__dirname, overlayCfg.logoPath || '');
     if (logoAbsPath && fs.existsSync(logoAbsPath)) {
-        const logoBuf = await sharp(logoAbsPath)
+        let logoBuf = await sharp(logoAbsPath)
             .resize({ width: logoWidth, fit: 'inside' })
+            .ensureAlpha()
             .png()
             .toBuffer();
-        const logoMeta = await sharp(logoBuf).metadata();
-        composites.push({
-            input: logoBuf,
-            top: pad,
-            left: w - logoMeta.width - pad,
-        });
+        const lm0 = await sharp(logoBuf).metadata();
+
+        // Placement (top-/bottom-right).
+        const left = w - lm0.width - pad;
+        const top = (overlayCfg.logoPosition === 'bottom-right')
+            ? h - lm0.height - pad
+            : pad;
+
+        // Recolor the logo to a solid tint using its own alpha as the shape mask.
+        // With both tints set, pick white/maroon by the luminance behind the logo
+        // so it stays legible on any background.
+        if (overlayCfg.logoTint || overlayCfg.logoTintLight) {
+            let tintVal = overlayCfg.logoTint || overlayCfg.logoTintLight;
+            if (adaptive) {
+                const lum = await regionLuminance(buf, w, h, left, top, lm0.width, lm0.height);
+                tintVal = pickAdaptiveTint(overlayCfg, lum);
+            }
+            const tint = parseTintColor(tintVal);
+            const alpha = await sharp(logoBuf).extractChannel('alpha').toBuffer();
+            logoBuf = await sharp({
+                create: { width: lm0.width, height: lm0.height, channels: 3, background: tint },
+            })
+                .joinChannel(alpha)
+                .png()
+                .toBuffer();
+        }
+        composites.push({ input: logoBuf, top, left });
     }
 
     if (composites.length === 0) return base64;

@@ -13,3 +13,6 @@ node_modules/
 
 # Claude
 .claude/
+
+# Runtime-generated brand preset overrides (dev settings panel)
+data/brand-overrides.json

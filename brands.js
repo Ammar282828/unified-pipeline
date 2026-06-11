@@ -29,12 +29,17 @@ const BRANDS = {
         captionBrandMention: '*House of Mina*',
         // Extra brand-only shot types injected into the shot catalog.
         extraShots: [],
-        // Logo+weight overlay composited onto finished ecom shots. Mina has no
-        // overlay logo yet, so overlay is opt-in but will render weight-text only.
+        // Logo+weight overlay composited onto finished ecom shots. Mina's source
+        // logo is dark maroon; it sits bottom-right and recolors itself white over
+        // dark areas or maroon over light areas (logoTint / logoTintLight) via its
+        // alpha mask, so it stays legible on any background.
         overlay: {
             supported: true,
             logoPath: 'public/assets/brands/mina/logo.png',
-            defaultEnabled: false,
+            logoPosition: 'bottom-right',
+            logoTint: 'white',
+            logoTintLight: '#3a0000',
+            defaultEnabled: true,
         },
     },
 
@@ -78,24 +83,116 @@ const BRANDS = {
 
 const DEFAULT_BRAND = 'mina';
 
+// ── Runtime preset overrides (dev settings) ────────────────────────────────
+// A dev-facing settings panel can tweak the prompt-driving text fields of a
+// brand at runtime. Overrides are merged over the base brand by resolveBrand
+// and persisted to data/brand-overrides.json so they survive restarts. Only
+// the fields below may be overridden — structural fields (id/label/logo/
+// extraShots) stay code-owned.
+const fs = require('fs');
+const path = require('path');
+const OVERRIDES_PATH = path.join(__dirname, 'data', 'brand-overrides.json');
+const EDITABLE_FIELDS = [
+    'tagline', 'voice', 'lighting', 'mood', 'avoid',
+    'ecomStandBrandRef', 'captionSystem', 'captionBrandMention',
+];
+
+let OVERRIDES = {};
+(function loadOverrides() {
+    try {
+        OVERRIDES = JSON.parse(fs.readFileSync(OVERRIDES_PATH, 'utf8')) || {};
+    } catch (e) { OVERRIDES = {}; }
+})();
+
+function saveOverrides() {
+    try {
+        fs.mkdirSync(path.dirname(OVERRIDES_PATH), { recursive: true });
+        fs.writeFileSync(OVERRIDES_PATH, JSON.stringify(OVERRIDES, null, 2));
+    } catch (e) {
+        console.error('[brands] could not persist overrides:', e.message);
+    }
+}
+
+// Keep only whitelisted string fields (+ overlay.defaultEnabled bool).
+function sanitizePatch(patch) {
+    const out = {};
+    if (!patch || typeof patch !== 'object') return out;
+    for (const k of EDITABLE_FIELDS) {
+        if (typeof patch[k] === 'string') out[k] = patch[k];
+    }
+    if (patch.overlay && typeof patch.overlay.defaultEnabled === 'boolean') {
+        out.overlay = { defaultEnabled: patch.overlay.defaultEnabled };
+    }
+    return out;
+}
+
 function resolveBrand(id) {
-    if (id && BRANDS[id]) return BRANDS[id];
-    return BRANDS[DEFAULT_BRAND];
+    const base = (id && BRANDS[id]) ? BRANDS[id] : BRANDS[DEFAULT_BRAND];
+    const ov = OVERRIDES[base.id];
+    if (!ov) return base;
+    const merged = { ...base, ...sanitizePatch(ov) };
+    if (ov.overlay && base.overlay) {
+        merged.overlay = { ...base.overlay, ...sanitizePatch(ov).overlay };
+    }
+    return merged;
+}
+
+// Effective preset + defaults for the dev settings panel.
+function getBrandPreset(id) {
+    const base = BRANDS[id];
+    if (!base) return null;
+    const eff = resolveBrand(id);
+    const fields = {}, defaults = {};
+    for (const k of EDITABLE_FIELDS) {
+        fields[k] = eff[k] || '';
+        defaults[k] = base[k] || '';
+    }
+    return {
+        id: base.id,
+        label: base.label,
+        editableFields: EDITABLE_FIELDS,
+        fields,
+        defaults,
+        overlaySupported: !!(base.overlay && base.overlay.supported),
+        overlayDefaultEnabled: !!(eff.overlay && eff.overlay.defaultEnabled),
+        overlayDefaultDefault: !!(base.overlay && base.overlay.defaultEnabled),
+        overridden: !!OVERRIDES[id],
+    };
+}
+
+function setBrandPreset(id, patch) {
+    if (!BRANDS[id]) return null;
+    OVERRIDES[id] = sanitizePatch(patch);
+    saveOverrides();
+    return getBrandPreset(id);
+}
+
+function clearBrandPreset(id) {
+    if (!BRANDS[id]) return null;
+    delete OVERRIDES[id];
+    saveOverrides();
+    return getBrandPreset(id);
 }
 
 function listBrands() {
-    return Object.values(BRANDS).map(b => ({
-        id: b.id,
-        label: b.label,
-        shortLabel: b.shortLabel,
-        domain: b.domain,
-        logo: b.logo,
-        logoDark: b.logoDark,
-        scrapePlaceholder: b.scrapePlaceholder,
-        overlay: b.overlay
-            ? { supported: !!b.overlay.supported, defaultEnabled: !!b.overlay.defaultEnabled }
-            : { supported: false, defaultEnabled: false },
-    }));
+    return Object.keys(BRANDS).map(id => {
+        const b = resolveBrand(id);   // reflects runtime overlay-default overrides
+        return {
+            id: b.id,
+            label: b.label,
+            shortLabel: b.shortLabel,
+            domain: b.domain,
+            logo: b.logo,
+            logoDark: b.logoDark,
+            scrapePlaceholder: b.scrapePlaceholder,
+            overlay: b.overlay
+                ? { supported: !!b.overlay.supported, defaultEnabled: !!b.overlay.defaultEnabled }
+                : { supported: false, defaultEnabled: false },
+        };
+    });
 }
 
-module.exports = { BRANDS, DEFAULT_BRAND, resolveBrand, listBrands };
+module.exports = {
+    BRANDS, DEFAULT_BRAND, resolveBrand, listBrands,
+    getBrandPreset, setBrandPreset, clearBrandPreset,
+};
